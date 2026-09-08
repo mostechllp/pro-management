@@ -12,6 +12,7 @@ import {
   FiFilter,
   FiDownload,
   FiEdit,
+  FiChevronRight,
 } from "react-icons/fi";
 import {
   getDocuments,
@@ -30,8 +31,8 @@ import DocumentForm from "./DocumentForm";
 import EditDocumentForm from "./EditDocumentForm";
 import toast from "react-hot-toast";
 import DeleteConfirmationModal from "../common/DeleteModal";
-import FormattedDate from "../common/FormattedDate"; // ✅ Import FormattedDate
-import { usePreferences } from "../../hooks/usePreferences"; // ✅ Import usePreferences
+import FormattedDate from "../common/FormattedDate";
+import { usePreferences } from "../../hooks/usePreferences";
 
 const Documents = () => {
   const dispatch = useDispatch();
@@ -54,7 +55,7 @@ const Documents = () => {
     (state) => state.documents,
   );
 
-  // ✅ Get preferences for date formatting
+  // Get preferences for date formatting
   const preferences = usePreferences();
 
   useEffect(() => {
@@ -208,61 +209,74 @@ const Documents = () => {
     return colors[status] || "bg-gray-100 text-gray-800";
   };
 
+  // Get status badge color for dot indicator
+  const getStatusDotColor = (status) => {
+    const colors = {
+      Valid: "bg-green-500",
+      Critical: "bg-red-500",
+      "Expiring Soon": "bg-yellow-500",
+      Expired: "bg-gray-500",
+    };
+    return colors[status] || "bg-gray-500";
+  };
+
   // Loading state
   if (loading && documents.length === 0) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
+      <div className="p-4 sm:p-6 flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading documents...</p>
+          <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 text-sm sm:text-base">Loading documents...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="p-3 sm:p-4 md:p-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Documents</h1>
-          <p className="text-gray-600">Manage all your documents</p>
+          <h1 className="text-xl sm:text-2xl font-bold">Documents</h1>
+          <p className="text-sm sm:text-base text-gray-600">Manage all your documents</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <button
             onClick={handleAddDocument}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
+            className="flex-1 sm:flex-none bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors text-sm sm:text-base"
           >
-            <FiPlus /> Upload Document
+            <FiPlus size={18} /> 
+            <span className="hidden xs:inline">Upload Document</span>
+            <span className="xs:hidden">Upload</span>
           </button>
           <button
             onClick={handleRefresh}
             disabled={loading}
-            className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="px-3 sm:px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
-            <FiRefreshCw className={loading ? "animate-spin" : ""} />
+            <FiRefreshCw className={loading ? "animate-spin" : ""} size={18} />
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="mb-4 sm:mb-6 grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
         <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Search documents by name or customer..."
+            placeholder="Search documents..."
             value={search}
             onChange={handleSearch}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-3 sm:pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
           />
         </div>
         <div className="relative">
-          <FiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <FiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
           <select
             value={statusFilter}
             onChange={handleStatusFilter}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+            className="w-full pl-10 pr-3 sm:pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white text-sm sm:text-base"
           >
             <option value="">All Status</option>
             <option value="Valid">Valid</option>
@@ -273,28 +287,28 @@ const Documents = () => {
         </div>
       </div>
 
-      {/* Documents Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Documents Table - Desktop */}
+      <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Document Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Type
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Expiry Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -306,75 +320,74 @@ const Documents = () => {
                     key={doc._id}
                     className="hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-gray-900 text-sm">
                           {doc.customer?.name || "N/A"}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs text-gray-500">
                           {doc.customer?.company || ""}
                         </p>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <FiFileText className="text-gray-400" />
-                        <span className="font-medium">{doc.name}</span>
+                        <FiFileText className="text-gray-400 shrink-0" size={16} />
+                        <span className="font-medium text-sm">{doc.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded-full">
                         {doc.type}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <FiCalendar className="text-gray-400" size={14} />
-                        {/* ✅ Use FormattedDate for expiry date */}
+                        <FiCalendar className="text-gray-400 shrink-0" size={14} />
                         <FormattedDate 
                           date={doc.expiryDate} 
                           format={preferences?.dateFormat} 
                         />
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(doc.status)}`}
                       >
                         {doc.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1 sm:gap-2">
                         <button
                           onClick={() => handleViewDocument(doc._id)}
-                          className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded hover:bg-blue-50"
+                          className="text-blue-600 hover:text-blue-900 transition-colors p-1.5 rounded hover:bg-blue-50"
                           title="View Document"
                         >
-                          <FiEye size={18} />
+                          <FiEye size={17} />
                         </button>
                         <button
                           onClick={() => handleEditClick(doc)}
-                          className="text-amber-600 hover:text-amber-900 transition-colors p-1 rounded hover:bg-amber-50"
+                          className="text-amber-600 hover:text-amber-900 transition-colors p-1.5 rounded hover:bg-amber-50"
                           title="Edit Document"
                         >
-                          <FiEdit size={18} />
+                          <FiEdit size={17} />
                         </button>
                         <button
                           onClick={() =>
                             handleDownloadDocument(doc._id, doc.name)
                           }
-                          className="text-green-600 hover:text-green-900 transition-colors p-1 rounded hover:bg-green-50"
+                          className="text-green-600 hover:text-green-900 transition-colors p-1.5 rounded hover:bg-green-50"
                           title="Download Document"
                         >
-                          <FiDownload size={18} />
+                          <FiDownload size={17} />
                         </button>
                         <button
                           onClick={() => handleDeleteClick(doc._id, doc.name)}
-                          className="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50"
+                          className="text-red-600 hover:text-red-900 transition-colors p-1.5 rounded hover:bg-red-50"
                           title="Delete Document"
                         >
-                          <FiTrash2 size={18} />
+                          <FiTrash2 size={17} />
                         </button>
                       </div>
                     </td>
@@ -411,8 +424,8 @@ const Documents = () => {
 
         {/* Pagination */}
         {pagination.total > 0 && (
-          <div className="px-6 py-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="text-sm text-gray-500">
+          <div className="px-4 lg:px-6 py-4 border-t flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+            <div className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
               Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
               {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
               of {pagination.total} results
@@ -421,11 +434,11 @@ const Documents = () => {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={pagination.page === 1}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 Previous
               </button>
-              <span className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg">
+              <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-50 text-blue-600 rounded-lg text-sm">
                 {pagination.page} of {pagination.pages}
               </span>
               <button
@@ -433,7 +446,7 @@ const Documents = () => {
                   setPage((p) => Math.min(pagination.pages, p + 1))
                 }
                 disabled={pagination.page === pagination.pages}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 Next
               </button>
@@ -441,6 +454,135 @@ const Documents = () => {
           </div>
         )}
       </div>
+
+      {/* Documents Cards - Mobile/Tablet */}
+      <div className="md:hidden space-y-3 sm:space-y-4">
+        {documents.length > 0 ? (
+          documents.map((doc) => (
+            <div
+              key={doc._id}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow"
+            >
+              {/* Header with status */}
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FiFileText className="text-blue-500 shrink-0" size={18} />
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 text-sm truncate">
+                      {doc.name}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {doc.customer?.name || "N/A"}
+                      {doc.customer?.company && ` • ${doc.customer.company}`}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={`px-2 py-0.5 inline-flex text-xs font-semibold rounded-full shrink-0 ml-2 ${getStatusColor(doc.status)}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full mr-1 self-center ${getStatusDotColor(doc.status)}`} />
+                  {doc.status}
+                </span>
+              </div>
+
+              {/* Details grid */}
+              <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
+                <div>
+                  <span className="text-gray-500">Type:</span>
+                  <span className="ml-1 text-gray-700 font-medium">{doc.type}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Expiry:</span>
+                  <span className="ml-1 text-gray-700">
+                    <FormattedDate 
+                      date={doc.expiryDate} 
+                      format={preferences?.dateFormat} 
+                    />
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-1 mt-3 pt-3 border-t border-gray-100">
+                <button
+                  onClick={() => handleViewDocument(doc._id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-xs font-medium"
+                >
+                  <FiEye size={15} /> View
+                </button>
+                <button
+                  onClick={() => handleEditClick(doc)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors text-xs font-medium"
+                >
+                  <FiEdit size={15} /> Edit
+                </button>
+                <button
+                  onClick={() => handleDownloadDocument(doc._id, doc.name)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors text-xs font-medium"
+                >
+                  <FiDownload size={15} /> Download
+                </button>
+                <button
+                  onClick={() => handleDeleteClick(doc._id, doc.name)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-xs font-medium"
+                >
+                  <FiTrash2 size={15} /> Delete
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <div className="flex flex-col items-center">
+              <FiFileText className="text-gray-400 mb-2" size={48} />
+              <p className="text-gray-500 font-medium">No documents found</p>
+              <p className="text-gray-400 text-sm mt-1">
+                {search || statusFilter
+                  ? "Try adjusting your filters"
+                  : "Upload your first document"}
+              </p>
+              {!search && !statusFilter && (
+                <button
+                  onClick={handleAddDocument}
+                  className="mt-3 text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  + Upload Document
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Pagination */}
+      {pagination.total > 0 && (
+        <div className="md:hidden mt-4 flex flex-col items-center gap-3">
+          <div className="text-xs text-gray-500">
+            Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+            {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
+            {pagination.total}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={pagination.page === 1}
+              className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              Previous
+            </button>
+            <span className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm">
+              {pagination.page} of {pagination.pages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
+              disabled={pagination.page === pagination.pages}
+              className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Upload Document Modal */}
       <Modal isOpen={isModalOpen} onClose={handleCloseModal} size="lg">
