@@ -58,10 +58,10 @@ const Layout = () => {
         <div className="px-5 py-6">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shrink-0">
-              M
+              P
             </div>
             <span className="text-white font-bold text-lg tracking-tight">
-              MOSTECH
+              PRO Management
             </span>
           </div>
           <p className="text-[11px] text-slate-400 mt-2 leading-snug">
@@ -172,7 +172,6 @@ const Layout = () => {
                   {user?.role || 'Administrator'}
                 </p>
               </div>
-              <FiChevronDown size={16} className="text-slate-400" />
             </div>
           </div>
         </div>

@@ -431,13 +431,7 @@ const Dashboard = () => {
                     Company
                   </th>
                   <th className="px-5 py-2.5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th className="px-5 py-2.5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     Documents
-                  </th>
-                  <th className="px-5 py-2.5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                    Latest Expiry
                   </th>
                   <th className="px-5 py-2.5 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                     Status
@@ -463,15 +457,7 @@ const Dashboard = () => {
                         {customer.company}
                       </td>
                       <td className="px-5 py-3 whitespace-nowrap text-slate-600">
-                        {customer.phone || customer.contact || '—'}
-                      </td>
-                      <td className="px-5 py-3 whitespace-nowrap text-slate-600">
                         {customer.documents?.length || 0}
-                      </td>
-                      <td className="px-5 py-3 whitespace-nowrap text-slate-600">
-                        {customer.latestExpiry
-                          ? format(new Date(customer.latestExpiry), 'dd MMM yyyy')
-                          : '—'}
                       </td>
                       <td className="px-5 py-3 whitespace-nowrap">
                         <span

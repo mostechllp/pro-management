@@ -194,7 +194,9 @@ const SecurityTab = () => {
   const dispatch = useDispatch();
   const { savingPassword } = useSelector((state) => state.settings);
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  const [showPasswords, setShowPasswords] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formError, setFormError] = useState('');
 
   const handleChange = (e) => {
@@ -228,8 +230,6 @@ const SecurityTab = () => {
     }
   };
 
-  const inputType = showPasswords ? 'text' : 'password';
-
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-100">
       <div className="px-5 py-4 border-b border-slate-100">
@@ -241,50 +241,73 @@ const SecurityTab = () => {
 
       <form onSubmit={handleSubmit} className="p-5 max-w-sm">
         <div className="space-y-4">
+          {/* Current Password */}
           <div>
             <label className={labelClass}>Current Password *</label>
-            <input
-              type={inputType}
-              name="currentPassword"
-              value={form.currentPassword}
-              onChange={handleChange}
-              required
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>New Password *</label>
-            <input
-              type={inputType}
-              name="newPassword"
-              value={form.newPassword}
-              onChange={handleChange}
-              required
-              minLength={6}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Confirm New Password *</label>
-            <input
-              type={inputType}
-              name="confirmPassword"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              required
-              minLength={6}
-              className={inputClass}
-            />
+            <div className="relative">
+              <input
+                type={showCurrentPassword ? 'text' : 'password'}
+                name="currentPassword"
+                value={form.currentPassword}
+                onChange={handleChange}
+                required
+                className={`${inputClass} pr-10`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                {showCurrentPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+              </button>
+            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowPasswords((s) => !s)}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
-          >
-            {showPasswords ? <FiEyeOff size={14} /> : <FiEye size={14} />}
-            {showPasswords ? 'Hide passwords' : 'Show passwords'}
-          </button>
+          {/* New Password */}
+          <div>
+            <label className={labelClass}>New Password *</label>
+            <div className="relative">
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                name="newPassword"
+                value={form.newPassword}
+                onChange={handleChange}
+                required
+                minLength={6}
+                className={`${inputClass} pr-10`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                {showNewPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Confirm Password */}
+          <div>
+            <label className={labelClass}>Confirm New Password *</label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                name="confirmPassword"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                required
+                minLength={6}
+                className={`${inputClass} pr-10`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                {showConfirmPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+              </button>
+            </div>
+          </div>
 
           {formError && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
