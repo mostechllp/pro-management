@@ -58,16 +58,13 @@ const Dashboard = () => {
   const handleQuickAction = (action) => {
     switch (action) {
       case 'addCustomer':
-        dispatch(openModal({ type: 'addCustomer' }));
+        navigate('/customers');
         break;
       case 'uploadDocument':
         navigate('/documents');
         break;
-      case 'sendReminders':
-        // Implement send reminders functionality
-        break;
-      case 'exportReport':
-        // Implement export functionality
+      case 'expiry':
+        navigate('/expiry');
         break;
       default:
         break;
@@ -531,18 +528,11 @@ const Dashboard = () => {
               onClick={() => handleQuickAction('uploadDocument')}
             />
             <QuickAction
-              icon={<FiMail size={18} />}
+              icon={<FiCalendar size={18} />}
               iconBg="bg-green-500"
-              title="Send Reminders"
+              title="Expiry of Documents"
               description="Notify about upcoming expiries"
-              onClick={() => handleQuickAction('sendReminders')}
-            />
-            <QuickAction
-              icon={<FiDownload size={18} />}
-              iconBg="bg-blue-500"
-              title="Export Report"
-              description="Download data as PDF or Excel"
-              onClick={() => handleQuickAction('exportReport')}
+              onClick={() => handleQuickAction('expiry')}
             />
           </div>
         </div>
