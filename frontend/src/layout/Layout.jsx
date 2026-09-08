@@ -1,25 +1,39 @@
-import React, { useState } from 'react';
+// src/layout/Layout.jsx
+import React, { useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { 
-  FiHome, 
-  FiUsers, 
-  FiFileText, 
-  FiBell, 
+import {
+  FiHome,
+  FiUsers,
+  FiFileText,
+  FiBell,
   FiLogOut,
-  FiMenu,
-  FiX,
-  FiUser
+  FiSettings,
+  FiChevronDown,
 } from 'react-icons/fi';
 import { logout } from '../store/slices/authSlice';
-import { toggleSidebar } from '../store/slices/uiSlice';
+import NotificationDropdown from '../components/common/NotificationDopdown'; // ✅ Import
+import { fetchNotifications } from '../store/slices/notificationSlice'; // ✅ Import
 
 const Layout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
-  const { sidebarOpen } = useSelector((state) => state.ui);
+  const { stats } = useSelector((state) => state.dashboard);
+  const { notifications } = useSelector((state) => state.notifications);
+
+  // ✅ Fetch notifications on mount and periodically
+  useEffect(() => {
+    dispatch(fetchNotifications());
+    
+    // Refresh notifications every 5 minutes
+    const interval = setInterval(() => {
+      dispatch(fetchNotifications());
+    }, 5 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, [dispatch]);
 
   const menuItems = [
     { path: '/dashboard', icon: FiHome, label: 'Dashboard' },
@@ -28,95 +42,142 @@ const Layout = () => {
     { path: '/expiry', icon: FiBell, label: 'Expiry' },
   ];
 
+  // ✅ Get notification count from notifications slice
+  const notificationCount = notifications?.counts?.total || 0;
+
   const handleLogout = () => {
     dispatch(logout());
     navigate('/login');
   };
 
-  const handleToggleSidebar = () => {
-    dispatch(toggleSidebar());
-  };
-
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-slate-50">
       {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-white shadow-lg transition-all duration-300 flex flex-col fixed h-full z-30`}>
+      <div className="w-64 bg-[#0B1526] flex flex-col fixed h-full z-30">
         {/* Logo */}
-        <div className="p-4 border-b flex items-center justify-between">
-          {sidebarOpen ? (
-            <h1 className="text-xl font-bold text-blue-600">PRO Management</h1>
-          ) : (
-            <h1 className="text-xl font-bold text-blue-600">PRO</h1>
-          )}
-          <button
-            onClick={handleToggleSidebar}
-            className="p-1 rounded hover:bg-gray-100"
-          >
-            {sidebarOpen ? <FiX size={20} /> : <FiMenu size={20} />}
-          </button>
+        <div className="px-5 py-6">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shrink-0">
+              M
+            </div>
+            <span className="text-white font-bold text-lg tracking-tight">
+              MOSTECH
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-2 leading-snug">
+            Customer Document &amp; Expiry Management
+          </p>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 overflow-y-auto">
+        <nav className="flex-1 px-3 pt-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path || 
-              (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+            const isActive =
+              location.pathname === item.path ||
+              (item.path !== '/dashboard' &&
+                location.pathname.startsWith(item.path));
             return (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
-                  isActive 
-                    ? 'bg-blue-50 text-blue-600' 
-                    : 'text-gray-600 hover:bg-gray-50'
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-blue-600 text-white'
+                    : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
                 }`}
               >
-                <Icon size={20} />
-                {sidebarOpen && <span className="font-medium">{item.label}</span>}
+                <Icon size={18} />
+                <span>{item.label}</span>
               </button>
             );
           })}
+
+          <div className="my-3 border-t border-white/10" />
+
+          <button
+            onClick={() => navigate('/settings')}
+            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              location.pathname.startsWith('/settings')
+                ? 'bg-blue-600 text-white'
+                : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+            }`}
+          >
+            <FiSettings size={18} />
+            <span>Settings</span>
+          </button>
         </nav>
 
         {/* User Info */}
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
-              {user?.name?.charAt(0)?.toUpperCase() || <FiUser />}
+        <div className="p-3 border-t border-white/10">
+          <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors">
+            <div className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm shrink-0">
+              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-            {sidebarOpen && (
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user?.name || 'User'}</p>
-                <p className="text-xs text-gray-500 truncate">{user?.email || ''}</p>
-              </div>
-            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {user?.name || 'User'}
+              </p>
+              <p className="text-xs text-slate-400 truncate">
+                {user?.role || 'Administrator'}
+              </p>
+            </div>
           </div>
           <button
             onClick={handleLogout}
-            className="w-full mt-3 flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="w-full mt-1 flex items-center gap-2 px-4 py-2 text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
           >
-            <FiLogOut size={18} />
-            {sidebarOpen && <span>Logout</span>}
+            <FiLogOut size={16} />
+            <span>Logout</span>
           </button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
-        <div className="p-4 bg-white shadow-sm sticky top-0 z-10">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-800">
-              {menuItems.find(item => item.path === location.pathname)?.label || 'Dashboard'}
+      <div className="flex-1 ml-64 flex flex-col min-w-0">
+        {/* Top Header */}
+        <div className="h-[76px] px-6 bg-white border-b border-slate-200 flex items-center justify-between shrink-0">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">
+              {menuItems.find((item) => item.path === location.pathname)
+                ?.label || 'Dashboard'}
             </h2>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">
-                Welcome, {user?.name || 'User'}
-              </span>
+            {location.pathname === '/dashboard' && (
+              <p className="text-xs text-slate-500 mt-0.5">
+                Overview of your customers, documents and upcoming expiries
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-5">
+            {/* ✅ Replace the old bell button with NotificationDropdown */}
+            <NotificationDropdown />
+            
+            <div className="flex items-center gap-2.5 cursor-pointer">
+              <div className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm overflow-hidden">
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user?.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  user?.name?.charAt(0)?.toUpperCase() || 'U'
+                )}
+              </div>
+              <div className="leading-tight">
+                <p className="text-sm font-semibold text-slate-800">
+                  {user?.name || 'User'}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {user?.role || 'Administrator'}
+                </p>
+              </div>
+              <FiChevronDown size={16} className="text-slate-400" />
             </div>
           </div>
         </div>
-        <div className="p-6">
+
+        <div className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </div>
       </div>

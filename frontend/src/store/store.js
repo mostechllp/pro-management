@@ -8,6 +8,8 @@ import customerReducer from './slices/customerSlice';
 import documentReducer from './slices/documentSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import expiryReducer from './slices/expirySlice'; 
+import settingsReducer from './slices/settingsSlice'; 
+import notificationReducer from './slices/notificationSlice';
 import uiReducer from './slices/uiSlice';
 
 // Explicit browser storage adapter
@@ -37,7 +39,9 @@ const rootReducer = combineReducers({
   documents: documentReducer,
   dashboard: dashboardReducer,
   expiry: expiryReducer,
+  settings: settingsReducer,
   ui: uiReducer,
+  notifications: notificationReducer,
 });
 
 const persistedReducer = persistReducer(

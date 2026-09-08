@@ -1,1 +1,67 @@
 @import "tailwindcss";
+
+@layer base {
+  html {
+    font-size: 14px;
+  }
+  
+  body {
+    font-size: 0.875rem; /* 14px */
+    line-height: 1.5;
+  }
+  
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  
+  h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+  
+  h4 {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+
+/* Table styles */
+@layer components {
+  .table-cell {
+    @apply px-4 py-2 text-sm;
+  }
+  
+  .table-header {
+    @apply px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+  }
+}
+
+/* Card hover effects */
+.hover-scale {
+  transition: transform 0.2s ease-in-out;
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* Dashboard specific */
+.dashboard-stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.dashboard-stat-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.dashboard-stat-change {
+  font-size: 0.7rem;
+}

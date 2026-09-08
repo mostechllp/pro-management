@@ -14,6 +14,7 @@ import Customers from './components/customer/Customers';
 import CustomerDetail from './components/customer/CustomerDetails';
 import Documents from './components/documents/Documents';
 import Expiry from './components/expiry/Expiry';
+import Settings from './components/Settings';
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
                   <Route path="/customers/:id" element={<CustomerDetail />} />
                   <Route path="/documents" element={<Documents />} />
                   <Route path="/expiry" element={<Expiry />} />
+                  <Route path="/settings" element={<Settings />} />
                 </Route>
               </Route>
             </Routes>

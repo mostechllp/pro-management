@@ -6,7 +6,9 @@ const {
   uploadDocument,
   updateDocument,
   deleteDocument,
-  viewDocument
+  viewDocument,
+  downloadDocument,
+  getNotifications 
 } = require('../controllers/documentController');
 const { protect } = require('../middleware/auth');
 const upload = require('../middleware/upload');
@@ -21,5 +23,6 @@ router.route('/:id')
   .delete(protect, deleteDocument);
 
 router.get('/:id/view', protect, viewDocument);
+router.get('/:id/download', protect, downloadDocument);
 
 module.exports = router;

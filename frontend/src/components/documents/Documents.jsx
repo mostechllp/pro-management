@@ -1,48 +1,68 @@
-import React, { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import { 
-  FiSearch, 
-  FiEye, 
-  FiTrash2, 
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import {
+  FiSearch,
+  FiEye,
+  FiTrash2,
   FiCalendar,
   FiFileText,
   FiPlus,
   FiRefreshCw,
   FiFilter,
-  FiDownload
-} from 'react-icons/fi';
-import { 
-  getDocuments, 
+  FiDownload,
+  FiEdit, // ✅ Added
+} from "react-icons/fi";
+import {
+  getDocuments,
   deleteDocument,
-  clearSelectedDocument 
-} from '../../store/slices/documentSlice';
-import { openModal, closeModal } from '../../store/slices/uiSlice';
-import { viewDocumentInNewTab, downloadDocument } from '../../utils/documentHelpers';
-import Modal from '../Common/Modal';
-import DocumentForm from './DocumentForm';
-import toast from 'react-hot-toast';
+  clearSelectedDocument,
+  updateDocument, // ✅ Added
+} from "../../store/slices/documentSlice";
+import { openModal, closeModal } from "../../store/slices/uiSlice";
+import {
+  viewDocumentInNewTab,
+  downloadDocument,
+  viewDoc,
+} from "../../utils/documentHelpers";
+import Modal from "../Common/Modal";
+import DocumentForm from "./DocumentForm";
+import EditDocumentForm from "./EditDocumentForm"; // ✅ Create this component
+import toast from "react-hot-toast";
+import DeleteConfirmationModal from "../common/DeleteModal";
 
 const Documents = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // ✅ Added
+  const [editingDocument, setEditingDocument] = useState(null); // ✅ Added
 
-  const { documents, loading, pagination } = useSelector((state) => state.documents);
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    id: null,
+    name: "",
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const { documents, loading, pagination } = useSelector(
+    (state) => state.documents,
+  );
 
   useEffect(() => {
-    // Load documents when component mounts or filters change
-    dispatch(getDocuments({ 
-      search, 
-      status: statusFilter,
-      page, 
-      limit: 10 
-    }));
-    
+    dispatch(
+      getDocuments({
+        search,
+        status: statusFilter,
+        page,
+        limit: 10,
+      }),
+    );
+
     return () => {
       dispatch(clearSelectedDocument());
     };
@@ -59,30 +79,97 @@ const Documents = () => {
   };
 
   const handleRefresh = () => {
-    dispatch(getDocuments({ 
-      search, 
-      status: statusFilter,
-      page, 
-      limit: 10 
-    }));
+    dispatch(
+      getDocuments({
+        search,
+        status: statusFilter,
+        page,
+        limit: 10,
+      }),
+    );
   };
 
-  const handleDelete = (id, name) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-      dispatch(deleteDocument(id));
+  // Handle delete - opens the delete modal
+  const handleDeleteClick = (id, name) => {
+    setDeleteModal({
+      isOpen: true,
+      id: id,
+      name: name,
+    });
+  };
+
+  // Confirm delete
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await dispatch(deleteDocument(deleteModal.id)).unwrap();
+      toast.success(`"${deleteModal.name}" deleted successfully`);
+      setDeleteModal({ isOpen: false, id: null, name: "" });
+    } catch (error) {
+      toast.error("Failed to delete document");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
-  const handleViewDocument = (docId) => {
-    viewDocumentInNewTab(docId);
+  // Close delete modal
+  const handleCloseDeleteModal = () => {
+    if (!isDeleting) {
+      setDeleteModal({ isOpen: false, id: null, name: "" });
+    }
+  };
+
+  // ✅ Handle edit - opens the edit modal
+  const handleEditClick = (document) => {
+    setEditingDocument(document);
+    setIsEditModalOpen(true);
+  };
+
+  // ✅ Handle edit document submit
+  const handleEditSubmit = async (formData) => {
+    try {
+      await dispatch(updateDocument({
+        id: editingDocument._id,
+        data: formData
+      })).unwrap();
+      toast.success('Document updated successfully!');
+      setIsEditModalOpen(false);
+      setEditingDocument(null);
+      // Refresh the documents list
+      dispatch(
+        getDocuments({
+          search,
+          status: statusFilter,
+          page,
+          limit: 10,
+        }),
+      );
+    } catch (error) {
+      toast.error('Failed to update document');
+    }
+  };
+
+  // ✅ Close edit modal
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingDocument(null);
+  };
+
+  const handleViewDocument = async (docId, fileName) => {
+    try {
+      await viewDoc(docId, fileName);
+      toast.success(`Downloading ${fileName || "document"}...`);
+    } catch (error) {
+      toast.error("Failed to download document");
+    }
   };
 
   const handleDownloadDocument = async (docId, fileName) => {
     try {
       await downloadDocument(docId);
-      toast.success(`Downloading ${fileName || 'document'}...`);
+      toast.success(`Downloading ${fileName || "document"}...`);
     } catch (error) {
-      toast.error('Failed to download document');
+      toast.error("Failed to download document");
     }
   };
 
@@ -96,24 +183,25 @@ const Documents = () => {
   };
 
   const handleDocumentUploadSuccess = () => {
-    // Refresh the documents list
-    dispatch(getDocuments({ 
-      search, 
-      status: statusFilter,
-      page, 
-      limit: 10 
-    }));
+    dispatch(
+      getDocuments({
+        search,
+        status: statusFilter,
+        page,
+        limit: 10,
+      }),
+    );
     setIsModalOpen(false);
   };
 
   const getStatusColor = (status) => {
     const colors = {
-      'Valid': 'bg-green-100 text-green-800',
-      'Critical': 'bg-red-100 text-red-800',
-      'Expiring Soon': 'bg-yellow-100 text-yellow-800',
-      'Expired': 'bg-gray-100 text-gray-800'
+      Valid: "bg-green-100 text-green-800",
+      Critical: "bg-red-100 text-red-800",
+      "Expiring Soon": "bg-yellow-100 text-yellow-800",
+      Expired: "bg-gray-100 text-gray-800",
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] || "bg-gray-100 text-gray-800";
   };
 
   // Loading state
@@ -148,7 +236,7 @@ const Documents = () => {
             disabled={loading}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
-            <FiRefreshCw className={loading ? 'animate-spin' : ''} />
+            <FiRefreshCw className={loading ? "animate-spin" : ""} />
           </button>
         </div>
       </div>
@@ -210,11 +298,18 @@ const Documents = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {documents.length > 0 ? (
                 documents.map((doc) => (
-                  <tr key={doc._id} className="hover:bg-gray-50 transition-colors">
+                  <tr
+                    key={doc._id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <p className="font-medium text-gray-900">{doc.customer?.name || 'N/A'}</p>
-                        <p className="text-sm text-gray-500">{doc.customer?.company || ''}</p>
+                        <p className="font-medium text-gray-900">
+                          {doc.customer?.name || "N/A"}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {doc.customer?.company || ""}
+                        </p>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -231,11 +326,15 @@ const Documents = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <FiCalendar className="text-gray-400" size={14} />
-                        <span>{format(new Date(doc.expiryDate), 'dd MMM yyyy')}</span>
+                        <span>
+                          {format(new Date(doc.expiryDate), "dd MMM yyyy")}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(doc.status)}`}>
+                      <span
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(doc.status)}`}
+                      >
                         {doc.status}
                       </span>
                     </td>
@@ -243,21 +342,31 @@ const Documents = () => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleViewDocument(doc._id)}
-                          className="text-blue-600 hover:text-blue-900 transition-colors"
+                          className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded hover:bg-blue-50"
                           title="View Document"
                         >
                           <FiEye size={18} />
                         </button>
+                        {/* ✅ Edit button */}
                         <button
-                          onClick={() => handleDownloadDocument(doc._id, doc.name)}
-                          className="text-green-600 hover:text-green-900 transition-colors"
+                          onClick={() => handleEditClick(doc)}
+                          className="text-amber-600 hover:text-amber-900 transition-colors p-1 rounded hover:bg-amber-50"
+                          title="Edit Document"
+                        >
+                          <FiEdit size={18} />
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDownloadDocument(doc._id, doc.name)
+                          }
+                          className="text-green-600 hover:text-green-900 transition-colors p-1 rounded hover:bg-green-50"
                           title="Download Document"
                         >
                           <FiDownload size={18} />
                         </button>
                         <button
-                          onClick={() => handleDelete(doc._id, doc.name)}
-                          className="text-red-600 hover:text-red-900 transition-colors"
+                          onClick={() => handleDeleteClick(doc._id, doc.name)}
+                          className="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50"
                           title="Delete Document"
                         >
                           <FiTrash2 size={18} />
@@ -271,9 +380,13 @@ const Documents = () => {
                   <td colSpan="6" className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center">
                       <FiFileText className="text-gray-400 mb-2" size={48} />
-                      <p className="text-gray-500 font-medium">No documents found</p>
+                      <p className="text-gray-500 font-medium">
+                        No documents found
+                      </p>
                       <p className="text-gray-400 text-sm mt-1">
-                        {search || statusFilter ? 'Try adjusting your filters' : 'Upload your first document'}
+                        {search || statusFilter
+                          ? "Try adjusting your filters"
+                          : "Upload your first document"}
                       </p>
                       {!search && !statusFilter && (
                         <button
@@ -295,12 +408,13 @@ const Documents = () => {
         {pagination.total > 0 && (
           <div className="px-6 py-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="text-sm text-gray-500">
-              Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
-              {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
+              Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+              {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
+              of {pagination.total} results
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={pagination.page === 1}
                 className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
@@ -310,7 +424,9 @@ const Documents = () => {
                 {pagination.page} of {pagination.pages}
               </span>
               <button
-                onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
+                onClick={() =>
+                  setPage((p) => Math.min(pagination.pages, p + 1))
+                }
                 disabled={pagination.page === pagination.pages}
                 className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
@@ -322,16 +438,32 @@ const Documents = () => {
       </div>
 
       {/* Upload Document Modal */}
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={handleCloseModal}
-        size="lg"
-      >
+      <Modal isOpen={isModalOpen} onClose={handleCloseModal} size="lg">
         <DocumentForm
           onClose={handleCloseModal}
           onSuccess={handleDocumentUploadSuccess}
         />
       </Modal>
+
+      {/* ✅ Edit Document Modal */}
+      <Modal isOpen={isEditModalOpen} onClose={handleCloseEditModal} size="lg">
+        <EditDocumentForm
+          document={editingDocument}
+          onClose={handleCloseEditModal}
+          onSuccess={handleEditSubmit}
+        />
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        title="Delete Document"
+        message="Are you sure you want to delete this document?"
+        itemName={deleteModal.name}
+        loading={isDeleting}
+      />
     </div>
   );
 };

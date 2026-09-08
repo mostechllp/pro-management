@@ -41,16 +41,16 @@ const Modal = ({ isOpen, onClose, children, size = 'lg' }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white/10 backdrop-blur-md">
       <div 
         ref={modalRef}
-        className={`${sizeClasses[size]} w-full bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto relative`}
+        className={`${sizeClasses[size]} w-full bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto relative`}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors z-10"
         >
-          <FiX size={24} />
+          <FiX size={20} />
         </button>
         {children}
       </div>
