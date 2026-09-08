@@ -361,25 +361,21 @@ const PreferencesTab = ({ preferences }) => {
   const { savingPreferences } = useSelector((state) => state.settings);
   const [form, setForm] = useState({
     emailNotifications: true,
-    expiryReminderDays: 30,
     dateFormat: 'dd MMM yyyy',
-    itemsPerPage: 10,
   });
 
   useEffect(() => {
     if (preferences) {
       setForm({
         emailNotifications: preferences.emailNotifications ?? true,
-        expiryReminderDays: preferences.expiryReminderDays ?? 30,
         dateFormat: preferences.dateFormat ?? 'dd MMM yyyy',
-        itemsPerPage: preferences.itemsPerPage ?? 10,
       });
     }
   }, [preferences]);
 
-  const handleSelectChange = (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: Number(value) || value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSave = () => {
@@ -389,13 +385,14 @@ const PreferencesTab = ({ preferences }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-100">
       <div className="px-5 py-4 border-b border-slate-100">
-        <h2 className="text-sm font-bold text-slate-800">Notifications &amp; Display</h2>
+        <h2 className="text-sm font-bold text-slate-800">Preferences</h2>
         <p className="text-xs text-slate-500 mt-0.5">
-          Control how and when you're notified about expiring documents.
+          Control your notification and display preferences.
         </p>
       </div>
 
       <div className="p-5">
+        {/* Email Notifications Toggle */}
         <ToggleRow
           label="Email notifications"
           description="Get emailed when a document is approaching its expiry date"
@@ -403,49 +400,22 @@ const PreferencesTab = ({ preferences }) => {
           onChange={(val) => setForm((prev) => ({ ...prev, emailNotifications: val }))}
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-          <div>
-            <label className={labelClass}>Remind me before expiry</label>
-            <select
-              name="expiryReminderDays"
-              value={form.expiryReminderDays}
-              onChange={handleSelectChange}
-              className={inputClass}
-            >
-              <option value={7}>7 days before</option>
-              <option value={15}>15 days before</option>
-              <option value={30}>30 days before</option>
-              <option value={60}>60 days before</option>
-            </select>
-          </div>
-
-          <div>
-            <label className={labelClass}>Date format</label>
-            <select
-              name="dateFormat"
-              value={form.dateFormat}
-              onChange={handleSelectChange}
-              className={inputClass}
-            >
-              <option value="dd MMM yyyy">31 Dec 2026</option>
-              <option value="MM/dd/yyyy">12/31/2026</option>
-              <option value="yyyy-MM-dd">2026-12-31</option>
-            </select>
-          </div>
-
-          <div>
-            <label className={labelClass}>Rows per page</label>
-            <select
-              name="itemsPerPage"
-              value={form.itemsPerPage}
-              onChange={handleSelectChange}
-              className={inputClass}
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-          </div>
+        {/* Date Format */}
+        <div className="pt-4">
+          <label className={labelClass}>Date format</label>
+          <select
+            name="dateFormat"
+            value={form.dateFormat}
+            onChange={handleChange}
+            className={inputClass}
+          >
+            <option value="dd MMM yyyy">31 Dec 2026</option>
+            <option value="MM/dd/yyyy">12/31/2026</option>
+            <option value="yyyy-MM-dd">2026-12-31</option>
+          </select>
+          <p className="text-xs text-slate-400 mt-1.5">
+            This will change how dates are displayed across the application.
+          </p>
         </div>
 
         <div className="mt-6 flex justify-end">

@@ -135,9 +135,9 @@ class EmailService {
               <h2>Document Expiring ${daysLeft <= 1 ? 'TODAY' : 'Soon'}</h2>
               
               <div class="urgent-box">
-                <p><strong>📄 Document:</strong> ${documentName}</p>
-                <p><strong>👤 Customer:</strong> ${customerName}</p>
-                <p><strong>📅 Expiry Date:</strong> ${new Date(expiryDate).toLocaleDateString('en-US', {
+                <p><strong> Document:</strong> ${documentName}</p>
+                <p><strong>Customer:</strong> ${customerName}</p>
+                <p><strong>Expiry Date:</strong> ${new Date(expiryDate).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric'

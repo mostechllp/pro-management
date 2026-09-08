@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import {
   FiUsers,
@@ -19,6 +18,9 @@ import {
 } from 'react-icons/fi';
 import { getDashboardStats, clearDashboard } from '../store/slices/dashboardSlice';
 import { openModal } from '../store/slices/uiSlice';
+import FormattedDate from './common/FormattedDate'; // ✅ Import FormattedDate
+import { usePreferences } from '../hooks/usePreferences'; // ✅ Import usePreferences
+import { getDaysLeft, formatDaysLeft } from '../utils/dateUtils'; // ✅ Import date utilities
 
 // Days-left filter options shown as pill tabs above the renewals table
 const RENEWAL_FILTERS = [
@@ -43,6 +45,9 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { stats, loading, error } = useSelector((state) => state.dashboard);
   const [renewalFilter, setRenewalFilter] = useState('all');
+  
+  // ✅ Get preferences for date formatting
+  const preferences = usePreferences();
 
   useEffect(() => {
     dispatch(getDashboardStats());
@@ -243,58 +248,67 @@ const Dashboard = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredRenewals.length > 0 ? (
-                  filteredRenewals.slice(0, 6).map((doc, index) => (
-                    <tr
-                      key={doc._id || index}
-                      className="hover:bg-slate-50 transition-colors"
-                    >
-                      <td className="px-5 py-3 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <FiFileText className="text-blue-400 shrink-0" size={14} />
-                          <div>
-                            <p className="font-medium text-slate-800">
-                              {doc.customer?.name}
-                            </p>
-                            <p className="text-xs text-slate-400">
-                              {doc.customer?.company}
-                            </p>
+                  filteredRenewals.slice(0, 6).map((doc, index) => {
+                    // ✅ Calculate days left using utility
+                    const daysLeft = getDaysLeft(doc.expiryDate);
+                    return (
+                      <tr
+                        key={doc._id || index}
+                        className="hover:bg-slate-50 transition-colors"
+                      >
+                        <td className="px-5 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <FiFileText className="text-blue-400 shrink-0" size={14} />
+                            <div>
+                              <p className="font-medium text-slate-800">
+                                {doc.customer?.name}
+                              </p>
+                              <p className="text-xs text-slate-400">
+                                {doc.customer?.company}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3 whitespace-nowrap text-slate-600">
-                        {doc.name}
-                      </td>
-                      <td className="px-5 py-3 whitespace-nowrap text-slate-600">
-                        {format(new Date(doc.expiryDate), 'dd MMM yyyy')}
-                      </td>
-                      <td className="px-5 py-3 whitespace-nowrap">
-                        <span
-                          className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                            doc.daysLeft <= 7
-                              ? 'bg-red-50 text-red-600'
-                              : doc.daysLeft <= 30
-                                ? 'bg-amber-50 text-amber-600'
-                                : 'bg-green-50 text-green-600'
-                          }`}
-                        >
-                          {doc.daysLeft} days
-                        </span>
-                      </td>
-                      <td className="px-5 py-3 whitespace-nowrap">
-                        <StatusBadge status={doc.status} />
-                      </td>
-                      <td className="px-5 py-3 whitespace-nowrap">
-                        <button
-                          onClick={() =>
-                            navigate(`/customers/${doc.customer?._id}`)
-                          }
-                          className="text-xs font-semibold text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="px-5 py-3 whitespace-nowrap text-slate-600">
+                          {doc.name}
+                        </td>
+                        <td className="px-5 py-3 whitespace-nowrap text-slate-600">
+                          {/* ✅ Use FormattedDate for expiry date */}
+                          <FormattedDate 
+                            date={doc.expiryDate} 
+                            format={preferences?.dateFormat} 
+                          />
+                        </td>
+                        <td className="px-5 py-3 whitespace-nowrap">
+                          <span
+                            className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                              daysLeft <= 7
+                                ? 'bg-red-50 text-red-600'
+                                : daysLeft <= 30
+                                  ? 'bg-amber-50 text-amber-600'
+                                  : 'bg-green-50 text-green-600'
+                            }`}
+                          >
+                            {/* ✅ Use formatDaysLeft utility */}
+                            {formatDaysLeft(daysLeft)}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 whitespace-nowrap">
+                          <StatusBadge status={doc.status} />
+                        </td>
+                        <td className="px-5 py-3 whitespace-nowrap">
+                          <button
+                            onClick={() =>
+                              navigate(`/customers/${doc.customer?._id}`)
+                            }
+                            className="text-xs font-semibold text-blue-600 border border-blue-200 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td

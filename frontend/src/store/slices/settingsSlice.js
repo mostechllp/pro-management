@@ -12,17 +12,7 @@ const initialState = {
   error: null,
 };
 
-export const getSettings = createAsyncThunk(
-  'settings/get',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await apiClient.get('/settings');
-      return response.data.data;
-    } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to load settings');
-    }
-  },
-);
+
 
 export const updateProfile = createAsyncThunk(
   'settings/updateProfile',
@@ -56,17 +46,64 @@ export const updatePassword = createAsyncThunk(
 
 export const updatePreferences = createAsyncThunk(
   'settings/updatePreferences',
-  async (payload, { rejectWithValue, dispatch }) => {
+  async (preferences, { rejectWithValue, dispatch }) => {
     try {
-      const response = await apiClient.put('/settings/preferences', payload);
-      dispatch(showNotification({ message: 'Preferences saved', type: 'success' }));
+      const response = await apiClient.put('/settings/preferences', preferences);
+      
+      // ✅ Save to localStorage immediately
+      localStorage.setItem('userPreferences', JSON.stringify(preferences));
+      
+      dispatch(
+        showNotification({
+          message: 'Preferences updated successfully!',
+          type: 'success',
+        })
+      );
       return response.data.data;
     } catch (error) {
-      const message = error.response?.data?.message || 'Failed to save preferences';
-      dispatch(showNotification({ message, type: 'error' }));
-      return rejectWithValue(message);
+      dispatch(
+        showNotification({
+          message: error.response?.data?.message || 'Failed to update preferences',
+          type: 'error',
+        })
+      );
+      return rejectWithValue(error.response?.data?.message || 'Failed to update preferences');
     }
-  },
+  }
+);
+
+// When fetching settings, also load from localStorage
+export const getSettings = createAsyncThunk(
+  'settings/get',
+  async (_, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await apiClient.get('/settings');
+      
+      // ✅ Load preferences from localStorage if available
+      const localPrefs = localStorage.getItem('userPreferences');
+      if (localPrefs) {
+        try {
+          const parsed = JSON.parse(localPrefs);
+          response.data.data.preferences = {
+            ...response.data.data.preferences,
+            ...parsed
+          };
+        } catch (e) {
+          // Ignore parsing errors
+        }
+      }
+      
+      return response.data.data;
+    } catch (error) {
+      dispatch(
+        showNotification({
+          message: error.response?.data?.message || 'Failed to load settings',
+          type: 'error',
+        })
+      );
+      return rejectWithValue(error.response?.data?.message || 'Failed to load settings');
+    }
+  }
 );
 
 const settingsSlice = createSlice({

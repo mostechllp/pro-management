@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
 import {
   FiSearch,
   FiEye,
@@ -12,13 +11,13 @@ import {
   FiRefreshCw,
   FiFilter,
   FiDownload,
-  FiEdit, // ✅ Added
+  FiEdit,
 } from "react-icons/fi";
 import {
   getDocuments,
   deleteDocument,
   clearSelectedDocument,
-  updateDocument, // ✅ Added
+  updateDocument,
 } from "../../store/slices/documentSlice";
 import { openModal, closeModal } from "../../store/slices/uiSlice";
 import {
@@ -28,9 +27,11 @@ import {
 } from "../../utils/documentHelpers";
 import Modal from "../common/Modal";
 import DocumentForm from "./DocumentForm";
-import EditDocumentForm from "./EditDocumentForm"; // ✅ Create this component
+import EditDocumentForm from "./EditDocumentForm";
 import toast from "react-hot-toast";
 import DeleteConfirmationModal from "../common/DeleteModal";
+import FormattedDate from "../common/FormattedDate"; // ✅ Import FormattedDate
+import { usePreferences } from "../../hooks/usePreferences"; // ✅ Import usePreferences
 
 const Documents = () => {
   const dispatch = useDispatch();
@@ -39,8 +40,8 @@ const Documents = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false); // ✅ Added
-  const [editingDocument, setEditingDocument] = useState(null); // ✅ Added
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingDocument, setEditingDocument] = useState(null);
 
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
@@ -52,6 +53,9 @@ const Documents = () => {
   const { documents, loading, pagination } = useSelector(
     (state) => state.documents,
   );
+
+  // ✅ Get preferences for date formatting
+  const preferences = usePreferences();
 
   useEffect(() => {
     dispatch(
@@ -119,13 +123,13 @@ const Documents = () => {
     }
   };
 
-  // ✅ Handle edit - opens the edit modal
+  // Handle edit - opens the edit modal
   const handleEditClick = (document) => {
     setEditingDocument(document);
     setIsEditModalOpen(true);
   };
 
-  // ✅ Handle edit document submit
+  // Handle edit document submit
   const handleEditSubmit = async (formData) => {
     try {
       await dispatch(updateDocument({
@@ -149,7 +153,7 @@ const Documents = () => {
     }
   };
 
-  // ✅ Close edit modal
+  // Close edit modal
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setEditingDocument(null);
@@ -326,9 +330,11 @@ const Documents = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <FiCalendar className="text-gray-400" size={14} />
-                        <span>
-                          {format(new Date(doc.expiryDate), "dd MMM yyyy")}
-                        </span>
+                        {/* ✅ Use FormattedDate for expiry date */}
+                        <FormattedDate 
+                          date={doc.expiryDate} 
+                          format={preferences?.dateFormat} 
+                        />
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -347,7 +353,6 @@ const Documents = () => {
                         >
                           <FiEye size={18} />
                         </button>
-                        {/* ✅ Edit button */}
                         <button
                           onClick={() => handleEditClick(doc)}
                           className="text-amber-600 hover:text-amber-900 transition-colors p-1 rounded hover:bg-amber-50"
@@ -445,7 +450,7 @@ const Documents = () => {
         />
       </Modal>
 
-      {/* ✅ Edit Document Modal */}
+      {/* Edit Document Modal */}
       <Modal isOpen={isEditModalOpen} onClose={handleCloseEditModal} size="lg">
         <EditDocumentForm
           document={editingDocument}

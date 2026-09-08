@@ -1,33 +1,52 @@
 @import "tailwindcss";
 
+/* ✅ Import Poppins font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+
 @layer base {
   html {
     font-size: 14px;
+    font-family: 'Poppins', sans-serif; /* ✅ Apply Poppins to html */
   }
   
   body {
     font-size: 0.875rem; /* 14px */
     line-height: 1.5;
+    font-family: 'Poppins', sans-serif; /* ✅ Apply Poppins to body */
+  }
+  
+  /* ✅ Apply Poppins to all elements */
+  * {
+    font-family: 'Poppins', sans-serif;
   }
   
   h1 {
     font-size: 1.5rem;
     font-weight: 700;
+    font-family: 'Poppins', sans-serif;
   }
   
   h2 {
     font-size: 1.25rem;
     font-weight: 600;
+    font-family: 'Poppins', sans-serif;
   }
   
   h3 {
     font-size: 1.125rem;
     font-weight: 600;
+    font-family: 'Poppins', sans-serif;
   }
   
   h4 {
     font-size: 1rem;
     font-weight: 600;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  /* ✅ Apply to all input, button, textarea */
+  input, button, textarea, select {
+    font-family: 'Poppins', sans-serif;
   }
 }
 
@@ -64,4 +83,29 @@
 
 .dashboard-stat-change {
   font-size: 0.7rem;
+}
+
+/* Custom scrollbar for notification dropdown */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* For Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
 }

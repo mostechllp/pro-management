@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { format } from 'date-fns';
 import {
   FiArrowLeft,
   FiEdit,
@@ -21,9 +20,11 @@ import { closeModal } from '../../store/slices/uiSlice';
 import Modal from '../common/Modal';
 import DocumentForm from '../documents/DocumentForm';
 import CustomerForm from './CustomerForm';
-import DeleteConfirmationModal from '../common/DeleteModal'; // ✅ Added
+import DeleteConfirmationModal from '../common/DeleteModal';
 import toast from 'react-hot-toast';
 import { viewDoc } from '../../utils/documentHelpers';
+import FormattedDate from '../common/FormattedDate'; // ✅ Import FormattedDate
+import { usePreferences } from '../../hooks/usePreferences'; // ✅ Import usePreferences
 
 const STATUS_STYLES = {
   Active: 'bg-green-100 text-green-700',
@@ -53,6 +54,9 @@ const CustomerDetail = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { selectedCustomer: customer, loading, error } = useSelector((state) => state.customers);
+  
+  // ✅ Get preferences for date formatting
+  const preferences = usePreferences();
 
   useEffect(() => {
     if (id) {
@@ -100,13 +104,13 @@ const CustomerDetail = () => {
   };
 
   const handleViewDocument = async (docId, fileName) => {
-      try {
-        await viewDoc(docId, fileName);
-        toast.success(`Downloading ${fileName || "document"}...`);
-      } catch (error) {
-        toast.error("Failed to download document");
-      }
-    };
+    try {
+      await viewDoc(docId, fileName);
+      toast.success(`Downloading ${fileName || "document"}...`);
+    } catch (error) {
+      toast.error("Failed to download document");
+    }
+  };
 
   const handleAddDocument = () => setIsDocumentModalOpen(true);
   const handleEditCustomer = () => setIsEditModalOpen(true);
@@ -317,12 +321,14 @@ const CustomerDetail = () => {
                       </span>
                     </td>
                     <td className="px-5 py-3.5 whitespace-nowrap text-slate-600">
-                      {format(new Date(doc.entryDate), 'dd MMM yyyy')}
+                      {/* ✅ Use FormattedDate for entry date */}
+                      <FormattedDate date={doc.entryDate} format={preferences?.dateFormat} />
                     </td>
                     <td className="px-5 py-3.5 whitespace-nowrap">
                       <div className="flex items-center gap-1.5 text-slate-600">
                         <FiCalendar className="text-slate-400" size={13} />
-                        {format(new Date(doc.expiryDate), 'dd MMM yyyy')}
+                        {/* ✅ Use FormattedDate for expiry date */}
+                        <FormattedDate date={doc.expiryDate} format={preferences?.dateFormat} />
                       </div>
                     </td>
                     <td className="px-5 py-3.5 whitespace-nowrap">
@@ -344,7 +350,6 @@ const CustomerDetail = () => {
                           <FiEye size={16} />
                         </button>
                         <button
-                          // ✅ Updated to use handleDeleteClick
                           onClick={() => handleDeleteClick(doc._id, doc.name)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-red-600 hover:bg-red-50 transition-colors"
                           title="Delete Document"
@@ -389,7 +394,9 @@ const CustomerDetail = () => {
                     {doc.type}
                   </span>
                   <span className="flex items-center gap-1">
-                    <FiCalendar size={12} /> {format(new Date(doc.expiryDate), 'dd MMM yyyy')}
+                    <FiCalendar size={12} />
+                    {/* ✅ Use FormattedDate for mobile expiry date */}
+                    <FormattedDate date={doc.expiryDate} format={preferences?.dateFormat} />
                   </span>
                 </div>
                 <div className="mt-3 flex justify-end gap-1">
@@ -400,7 +407,6 @@ const CustomerDetail = () => {
                     <FiEye size={16} />
                   </button>
                   <button
-                    // ✅ Updated to use handleDeleteClick
                     onClick={() => handleDeleteClick(doc._id, doc.name)}
                     className="w-8 h-8 flex items-center justify-center rounded-lg text-red-600 hover:bg-red-50 transition-colors"
                   >

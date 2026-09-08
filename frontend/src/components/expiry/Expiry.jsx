@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { format } from 'date-fns';
 import {
   FiSearch,
   FiEye,
@@ -18,7 +17,10 @@ import { viewDoc } from '../../utils/documentHelpers';
 import Modal from '../common/Modal'; 
 import EditDocumentForm from '../documents/EditDocumentForm'; 
 import toast from 'react-hot-toast';
-import DeleteConfirmationModal from '../common/DeleteModal'; 
+import DeleteConfirmationModal from '../common/DeleteModal';
+import FormattedDate from '../common/FormattedDate'; // ✅ Import FormattedDate
+import { usePreferences } from '../../hooks/usePreferences'; // ✅ Import usePreferences
+import { getDaysLeft, formatDaysLeft } from '../../utils/dateUtils'; // ✅ Import date utilities
 
 const STATUS_STYLES = {
   Critical: { badge: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
@@ -35,8 +37,6 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const daysLeftOf = (doc) => Math.ceil((new Date(doc.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
-
 const Expiry = () => {
   const dispatch = useDispatch();
   const [search, setSearch] = useState('');
@@ -44,11 +44,11 @@ const Expiry = () => {
   const [sortBy, setSortBy] = useState('expiryDate');
   const [sortOrder, setSortOrder] = useState('asc');
 
-  // ✅ Edit modal state
+  // Edit modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState(null);
 
-  // ✅ Delete modal state
+  // Delete modal state
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     id: null,
@@ -57,6 +57,9 @@ const Expiry = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { documents, loading, total } = useSelector((state) => state.expiry);
+  
+  // ✅ Get preferences for date formatting
+  const preferences = usePreferences();
 
   useEffect(() => {
     dispatch(getExpiringDocuments({ search, page, limit: 10 }));
@@ -74,7 +77,7 @@ const Expiry = () => {
     dispatch(getExpiringDocuments({ search, page, limit: 10 }));
   };
 
-  // ✅ Handle delete - opens the delete modal
+  // Handle delete - opens the delete modal
   const handleDeleteClick = (id, name) => {
     setDeleteModal({
       isOpen: true,
@@ -83,7 +86,7 @@ const Expiry = () => {
     });
   };
 
-  // ✅ Confirm delete
+  // Confirm delete
   const handleConfirmDelete = async () => {
     setIsDeleting(true);
     try {
@@ -99,20 +102,20 @@ const Expiry = () => {
     }
   };
 
-  // ✅ Close delete modal
+  // Close delete modal
   const handleCloseDeleteModal = () => {
     if (!isDeleting) {
       setDeleteModal({ isOpen: false, id: null, name: '' });
     }
   };
 
-  // ✅ Handle edit - opens the edit modal
+  // Handle edit - opens the edit modal
   const handleEditClick = (document) => {
     setEditingDocument(document);
     setIsEditModalOpen(true);
   };
 
-  // ✅ Handle edit document submit
+  // Handle edit document submit
   const handleEditSubmit = async (formData) => {
     try {
       await dispatch(updateDocument({
@@ -129,7 +132,7 @@ const Expiry = () => {
     }
   };
 
-  // ✅ Close edit modal
+  // Close edit modal
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setEditingDocument(null);
@@ -153,6 +156,9 @@ const Expiry = () => {
     }
   };
 
+  // ✅ Use getDaysLeft utility instead of inline function
+  const getDaysLeftForDoc = (doc) => getDaysLeft(doc.expiryDate);
+
   const sortedDocuments = [...documents].sort((a, b) => {
     let comparison = 0;
     if (sortBy === 'expiryDate') {
@@ -162,15 +168,16 @@ const Expiry = () => {
     } else if (sortBy === 'customer') {
       comparison = (a.customer?.name || '').localeCompare(b.customer?.name || '');
     } else if (sortBy === 'daysLeft') {
-      comparison = daysLeftOf(a) - daysLeftOf(b);
+      comparison = getDaysLeftForDoc(a) - getDaysLeftForDoc(b);
     }
     return sortOrder === 'asc' ? comparison : -comparison;
   });
 
-  const hasUrgent = documents.some((doc) => daysLeftOf(doc) <= 7);
-  const criticalCount = documents.filter((doc) => daysLeftOf(doc) <= 7).length;
+  // ✅ Use getDaysLeft utility
+  const hasUrgent = documents.some((doc) => getDaysLeft(doc.expiryDate) <= 7);
+  const criticalCount = documents.filter((doc) => getDaysLeft(doc.expiryDate) <= 7).length;
   const soonCount = documents.filter((doc) => {
-    const d = daysLeftOf(doc);
+    const d = getDaysLeft(doc.expiryDate);
     return d > 7 && d <= 30;
   }).length;
 
@@ -302,7 +309,8 @@ const Expiry = () => {
             <tbody className="divide-y divide-slate-100">
               {sortedDocuments.length > 0 ? (
                 sortedDocuments.map((doc) => {
-                  const daysLeft = daysLeftOf(doc);
+                  // ✅ Use getDaysLeft utility
+                  const daysLeft = getDaysLeft(doc.expiryDate);
                   const isCritical = daysLeft <= 7;
                   return (
                     <tr key={doc._id} className={`hover:bg-slate-50 transition-colors ${isCritical ? 'bg-red-50/40' : ''}`}>
@@ -324,12 +332,17 @@ const Expiry = () => {
                       <td className="px-5 py-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-1.5 text-slate-600">
                           <FiCalendar className="text-slate-400" size={13} />
-                          {format(new Date(doc.expiryDate), 'dd MMM yyyy')}
+                          {/* ✅ Use FormattedDate for expiry date */}
+                          <FormattedDate 
+                            date={doc.expiryDate} 
+                            format={preferences?.dateFormat} 
+                          />
                         </div>
                       </td>
                       <td className="px-5 py-3.5 whitespace-nowrap">
                         <span className={`font-bold ${isCritical ? 'text-red-600' : 'text-amber-600'}`}>
-                          {daysLeft} {daysLeft === 1 ? 'day' : 'days'}
+                          {/* ✅ Use formatDaysLeft utility */}
+                          {formatDaysLeft(daysLeft)}
                         </span>
                       </td>
                       <td className="px-5 py-3.5 whitespace-nowrap">
@@ -344,7 +357,6 @@ const Expiry = () => {
                           >
                             <FiEye size={16} />
                           </button>
-                          {/* ✅ Edit button */}
                           <button
                             onClick={() => handleEditClick(doc)}
                             className="w-8 h-8 flex items-center justify-center rounded-lg text-amber-600 hover:bg-amber-50 transition-colors"
@@ -379,7 +391,8 @@ const Expiry = () => {
         <div className="md:hidden divide-y divide-slate-100">
           {sortedDocuments.length > 0 ? (
             sortedDocuments.map((doc) => {
-              const daysLeft = daysLeftOf(doc);
+              // ✅ Use getDaysLeft utility
+              const daysLeft = getDaysLeft(doc.expiryDate);
               const isCritical = daysLeft <= 7;
               return (
                 <div key={doc._id} className={`p-4 ${isCritical ? 'bg-red-50/40' : ''}`}>
@@ -395,10 +408,16 @@ const Expiry = () => {
                   </p>
                   <div className="mt-2 flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1 text-slate-500">
-                      <FiCalendar size={12} /> {format(new Date(doc.expiryDate), 'dd MMM yyyy')}
+                      <FiCalendar size={12} />
+                      {/* ✅ Use FormattedDate for mobile expiry date */}
+                      <FormattedDate 
+                        date={doc.expiryDate} 
+                        format={preferences?.dateFormat} 
+                      />
                     </span>
                     <span className={`font-bold ${isCritical ? 'text-red-600' : 'text-amber-600'}`}>
-                      {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
+                      {/* ✅ Use formatDaysLeft utility */}
+                      {formatDaysLeft(daysLeft)} left
                     </span>
                   </div>
                   <div className="mt-3 flex justify-end gap-1">
@@ -460,7 +479,7 @@ const Expiry = () => {
         )}
       </div>
 
-      {/* ✅ Edit Document Modal */}
+      {/* Edit Document Modal */}
       <Modal isOpen={isEditModalOpen} onClose={handleCloseEditModal} size="lg">
         <EditDocumentForm
           document={editingDocument}
@@ -469,7 +488,7 @@ const Expiry = () => {
         />
       </Modal>
 
-      {/* ✅ Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={deleteModal.isOpen}
         onClose={handleCloseDeleteModal}

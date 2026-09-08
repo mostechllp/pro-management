@@ -15,6 +15,7 @@ import CustomerDetail from './components/customer/CustomerDetails';
 import Documents from './components/documents/Documents';
 import Expiry from './components/expiry/Expiry';
 import Settings from './components/Settings';
+import Notifications from './components/Notifications';
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
                   <Route path="/documents" element={<Documents />} />
                   <Route path="/expiry" element={<Expiry />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/notifications" element={<Notifications />} />
                 </Route>
               </Route>
             </Routes>

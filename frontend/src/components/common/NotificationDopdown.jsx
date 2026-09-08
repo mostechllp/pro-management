@@ -10,6 +10,7 @@ import {
   FiCheckCircle,
   FiFileText,
   FiCheck,
+  FiFilter,
 } from 'react-icons/fi';
 import { MdDoneAll } from "react-icons/md";
 import { 
@@ -26,9 +27,10 @@ const NotificationDropdown = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [showUnreadOnly, setShowUnreadOnly] = useState(true);
   const dropdownRef = useRef(null);
   
-  // ✅ Delete modal state
+  // Delete modal state
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     id: null,
@@ -40,10 +42,15 @@ const NotificationDropdown = () => {
     (state) => state.notifications
   );
 
+  // Filter notifications based on showUnreadOnly
+  const filteredNotifications = showUnreadOnly
+    ? notifications.filter(n => !n.read)
+    : notifications;
+
   // Fetch notifications when dropdown opens
   useEffect(() => {
     if (isOpen) {
-      dispatch(fetchNotifications({ page: 1, limit: 20 }));
+      dispatch(fetchNotifications({ page: 1, limit: 50 }));
     }
   }, [isOpen, dispatch]);
 
@@ -68,7 +75,6 @@ const NotificationDropdown = () => {
     toast.success('All notifications marked as read');
   };
 
-  // ✅ Handle delete - opens the delete modal
   const handleDeleteClick = (notificationId, message, e) => {
     e.stopPropagation();
     setDeleteModal({
@@ -78,7 +84,6 @@ const NotificationDropdown = () => {
     });
   };
 
-  // ✅ Confirm delete
   const handleConfirmDelete = async () => {
     setIsDeleting(true);
     try {
@@ -92,11 +97,15 @@ const NotificationDropdown = () => {
     }
   };
 
-  // ✅ Close delete modal
   const handleCloseDeleteModal = () => {
     if (!isDeleting) {
       setDeleteModal({ isOpen: false, id: null, message: '' });
     }
+  };
+
+  const handleViewAll = () => {
+    setIsOpen(false);
+    navigate('/notifications');
   };
 
   const getNotificationIcon = (type) => {
@@ -126,13 +135,14 @@ const NotificationDropdown = () => {
   };
 
   const handleNotificationClick = (notification) => {
-    // Mark as read when clicked
     if (!notification.read) {
       dispatch(markNotificationRead(notification._id));
     }
     setIsOpen(false);
     navigate('/documents');
   };
+
+  const displayCount = showUnreadOnly ? unreadCount : notifications.length;
 
   return (
     <>
@@ -152,7 +162,7 @@ const NotificationDropdown = () => {
 
         {/* Dropdown */}
         {isOpen && (
-          <div className="absolute right-0 mt-2 w-96 max-w-[90vw] bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
+          <div className="absolute right-0 mt-2 w-100 max-w-[90vw] bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50">
               <div className="flex items-center gap-2">
@@ -166,6 +176,19 @@ const NotificationDropdown = () => {
                 )}
               </div>
               <div className="flex items-center gap-1">
+                {/* Filter toggle */}
+                <button
+                  onClick={() => setShowUnreadOnly(!showUnreadOnly)}
+                  className={`p-1 text-xs rounded transition-colors flex items-center gap-1 ${
+                    showUnreadOnly 
+                      ? 'text-blue-600 hover:text-blue-800 hover:bg-blue-50' 
+                      : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+                  }`}
+                  title={showUnreadOnly ? 'Show all notifications' : 'Show unread only'}
+                >
+                  <FiFilter size={14} />
+                  {showUnreadOnly ? 'Unread' : 'All'}
+                </button>
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllRead}
@@ -184,21 +207,35 @@ const NotificationDropdown = () => {
               </div>
             </div>
 
-            {/* Content */}
-            <div className="max-h-96 overflow-y-auto">
+            {/* Content with custom scrollbar */}
+            <div className="max-h-80 overflow-y-auto custom-scrollbar">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 </div>
-              ) : notifications.length === 0 ? (
+              ) : filteredNotifications.length === 0 ? (
                 <div className="flex flex-col items-center py-8 text-center">
                   <FiCheckCircle className="text-green-500 mb-2" size={32} />
-                  <p className="text-slate-600 font-medium text-sm">All caught up!</p>
-                  <p className="text-slate-400 text-xs mt-1">No notifications</p>
+                  <p className="text-slate-600 font-medium text-sm">
+                    {showUnreadOnly ? 'No unread notifications' : 'All caught up!'}
+                  </p>
+                  <p className="text-slate-400 text-xs mt-1">
+                    {showUnreadOnly && notifications.length > 0 
+                      ? 'You have read all notifications' 
+                      : 'No notifications'}
+                  </p>
+                  {showUnreadOnly && notifications.length > 0 && (
+                    <button
+                      onClick={() => setShowUnreadOnly(false)}
+                      className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      Show all notifications
+                    </button>
+                  )}
                 </div>
               ) : (
                 <>
-                  {notifications.map((notification) => (
+                  {filteredNotifications.map((notification) => (
                     <NotificationItem
                       key={notification._id}
                       notification={notification}
@@ -209,6 +246,18 @@ const NotificationDropdown = () => {
                       colorClass={getUrgencyColor(notification.type)}
                     />
                   ))}
+
+                  {/* Show all link if filtering unread and there are read notifications */}
+                  {showUnreadOnly && notifications.length > filteredNotifications.length && (
+                    <div className="px-4 py-2 text-center border-t border-slate-100">
+                      <button
+                        onClick={() => setShowUnreadOnly(false)}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Show all {notifications.length} notifications
+                      </button>
+                    </div>
+                  )}
 
                   {/* Load More */}
                   {pagination.pages > pagination.page && (
@@ -229,11 +278,21 @@ const NotificationDropdown = () => {
                 </>
               )}
             </div>
+
+            {/* View All Button */}
+            <div className="p-2 border-t border-slate-100">
+              <button
+                onClick={handleViewAll}
+                className="w-full py-2 text-sm text-center text-blue-600 hover:text-blue-800 font-medium hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                View All Notifications →
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* ✅ Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={deleteModal.isOpen}
         onClose={handleCloseDeleteModal}
@@ -269,8 +328,10 @@ const NotificationItem = ({ notification, onMarkRead, onDelete, onClick, icon, c
           <span className="text-xs text-slate-400">
             {formattedDate}
           </span>
-          {!notification.read && (
+          {!notification.read ? (
             <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+          ) : (
+            <span className="text-[10px] text-slate-400">✓ Read</span>
           )}
         </div>
       </div>

@@ -5,25 +5,35 @@ const Notification = require('./src/models/Notification');
 const Document = require('./src/models/Document');
 const User = require('./src/models/User');
 
-// Run every day at 9:00 AM
-cron.schedule('0 9 * * *', async () => {
-  console.log('🔄 Running daily notification check...');
+// ✅ Run in-app notifications every minute (for header bell icon)
+cron.schedule('* * * * *', async () => {
+  console.log('🔄 Running in-app notification check...', new Date().toISOString());
   try {
-    // 1. Send email notifications
-    const emailResult = await notificationService.checkAndSendExpiryNotifications();
-    console.log('📧 Email notifications sent:', emailResult);
-
-    // 2. Generate in-app database notifications
     const dbResult = await generateDatabaseNotifications();
-    console.log('📱 Database notifications generated:', dbResult);
+    if (dbResult.notificationsCreated > 0) {
+      console.log('📱 In-app notifications generated:', dbResult);
+    }
   } catch (error) {
-    console.error('❌ Notification check failed:', error);
+    console.error('❌ In-app notification check failed:', error);
   }
 });
 
-console.log('📅 Scheduler started. Will check daily at 9:00 AM');
+// ✅ Run email notifications daily at 9:00 AM
+cron.schedule('0 9 * * *', async () => {
+  console.log('📧 Running daily email notification check...', new Date().toISOString());
+  try {
+    const emailResult = await notificationService.checkAndSendExpiryNotifications();
+    console.log('📧 Email notifications sent:', emailResult);
+  } catch (error) {
+    console.error('❌ Email notification check failed:', error);
+  }
+});
 
-// ✅ Function to generate database notifications
+console.log('📅 Scheduler started.');
+console.log('📱 In-app notifications: Every minute');
+console.log('📧 Email notifications: Daily at 9:00 AM');
+
+// ✅ Function to generate database notifications (for in-app)
 async function generateDatabaseNotifications() {
   try {
     const now = new Date();
@@ -35,85 +45,66 @@ async function generateDatabaseNotifications() {
     const oneDayLater = new Date(today);
     oneDayLater.setDate(today.getDate() + 1);
 
-    // Get admin users (or all users who should receive notifications)
     const users = await User.find({ role: 'admin' });
     let notificationsCreated = 0;
 
     for (const user of users) {
-      // 📌 Get documents expiring in 1 day
-      const expiringIn1Day = await Document.find({
+      // 📌 Get ALL documents expiring within 7 days (not just exact dates)
+      const expiringDocs = await Document.find({
         expiryDate: {
-          $gte: oneDayLater,
-          $lt: new Date(oneDayLater.getTime() + 24 * 60 * 60 * 1000)
+          $gte: today,
+          $lte: sevenDaysLater
         },
         status: { $ne: 'Expired' }
       }).populate('customer');
 
-      for (const doc of expiringIn1Day) {
-        const existing = await Notification.findOne({
-          user: user._id,
-          documentId: doc._id,
-          type: 'EXPIRING_1_DAY'
-        });
-
-        if (!existing) {
-          await Notification.create({
-            user: user._id,
-            documentId: doc._id,
-            type: 'EXPIRING_1_DAY',
-            message: `⚠️ Document "${doc.name}" for ${doc.customer?.name || 'Unknown Customer'} expires tomorrow!`,
-            data: {
-              customerName: doc.customer?.name || 'Unknown Customer',
-              daysLeft: 1
-            }
-          });
-          notificationsCreated++;
-          console.log(`📱 Created 1-day notification for: ${doc.name}`);
+      for (const doc of expiringDocs) {
+        const daysLeft = Math.ceil((new Date(doc.expiryDate) - today) / (1000 * 60 * 60 * 24));
+        
+        let type, message;
+        if (daysLeft <= 1) {
+          type = 'EXPIRING_1_DAY';
+          message = `Document "${doc.name}" for ${doc.customer?.name || 'Unknown Customer'} expires ${daysLeft === 0 ? 'today' : 'tomorrow'}!`;
+        } else if (daysLeft <= 7) {
+          type = 'EXPIRING_7_DAYS';
+          message = `Document "${doc.name}" for ${doc.customer?.name || 'Unknown Customer'} expires in ${daysLeft} days.`;
         }
-      }
 
-      // 📌 Get documents expiring in 7 days
-      const expiringIn7Days = await Document.find({
-        expiryDate: {
-          $gte: sevenDaysLater,
-          $lt: new Date(sevenDaysLater.getTime() + 24 * 60 * 60 * 1000)
-        },
-        status: { $ne: 'Expired' }
-      }).populate('customer');
-
-      for (const doc of expiringIn7Days) {
+        // Check if notification already exists for this document and user
         const existing = await Notification.findOne({
           user: user._id,
           documentId: doc._id,
-          type: 'EXPIRING_7_DAYS'
+          type: type
         });
 
         if (!existing) {
           await Notification.create({
             user: user._id,
             documentId: doc._id,
-            type: 'EXPIRING_7_DAYS',
-            message: `📄 Document "${doc.name}" for ${doc.customer?.name || 'Unknown Customer'} expires in 7 days.`,
+            type: type,
+            message: message,
             data: {
               customerName: doc.customer?.name || 'Unknown Customer',
-              daysLeft: 7
+              daysLeft: daysLeft
             }
           });
           notificationsCreated++;
-          console.log(`📱 Created 7-day notification for: ${doc.name}`);
+          console.log(`Created ${type} notification for: ${doc.name} (${daysLeft} days left)`);
         }
       }
 
       // 📌 Get recently expired documents
       const recentlyExpired = await Document.find({
         expiryDate: {
-          $gte: new Date(today.getTime() - 24 * 60 * 60 * 1000),
+          $gte: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
           $lt: today
         },
         status: 'Expired'
       }).populate('customer');
 
       for (const doc of recentlyExpired) {
+        const daysOverdue = Math.ceil((today - new Date(doc.expiryDate)) / (1000 * 60 * 60 * 24));
+        
         const existing = await Notification.findOne({
           user: user._id,
           documentId: doc._id,
@@ -125,14 +116,14 @@ async function generateDatabaseNotifications() {
             user: user._id,
             documentId: doc._id,
             type: 'EXPIRED',
-            message: `🚫 Document "${doc.name}" for ${doc.customer?.name || 'Unknown Customer'} has expired!`,
+            message: `Document "${doc.name}" for ${doc.customer?.name || 'Unknown Customer'} expired ${daysOverdue} day${daysOverdue > 1 ? 's' : ''} ago!`,
             data: {
               customerName: doc.customer?.name || 'Unknown Customer',
-              daysOverdue: 1
+              daysOverdue: daysOverdue
             }
           });
           notificationsCreated++;
-          console.log(`📱 Created expired notification for: ${doc.name}`);
+          console.log(`Created EXPIRED notification for: ${doc.name}`);
         }
       }
     }
@@ -150,6 +141,5 @@ async function generateDatabaseNotifications() {
   }
 }
 
-// ✅ For testing - run immediately (optional)
-// Comment this out in production
+// ✅ Uncomment for testing - run once on startup
 // generateDatabaseNotifications();
