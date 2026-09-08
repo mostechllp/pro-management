@@ -5,7 +5,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './store/store';
 import { Toaster } from 'react-hot-toast';
 import Login from './components/auth/Login';
-import ForgotPassword from './components/auth/Forgetpassword';
+import ForgotPassword from './components/auth/ForgetPassword';
 import ResetPassword from './components/auth/ResetPassword';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Layout from './layout/Layout';
