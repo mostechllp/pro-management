@@ -18,7 +18,7 @@ import {
 import { getCustomer, clearSelectedCustomer } from '../../store/slices/customerSlice';
 import { deleteDocument } from '../../store/slices/documentSlice';
 import { closeModal } from '../../store/slices/uiSlice';
-import Modal from '../Common/Modal';
+import Modal from '../common/Modal';
 import DocumentForm from '../documents/DocumentForm';
 import CustomerForm from './CustomerForm';
 import DeleteConfirmationModal from '../common/DeleteModal'; // ✅ Added

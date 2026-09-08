@@ -15,7 +15,7 @@ import {
 import { getExpiringDocuments, deleteExpiringDocument, clearExpiryState } from '../../store/slices/expirySlice';
 import { updateDocument } from '../../store/slices/documentSlice'; 
 import { viewDoc } from '../../utils/documentHelpers';
-import Modal from '../Common/Modal'; 
+import Modal from '../common/Modal'; 
 import EditDocumentForm from '../documents/EditDocumentForm'; 
 import toast from 'react-hot-toast';
 import DeleteConfirmationModal from '../common/DeleteModal'; 

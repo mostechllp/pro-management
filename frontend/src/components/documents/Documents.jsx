@@ -26,7 +26,7 @@ import {
   downloadDocument,
   viewDoc,
 } from "../../utils/documentHelpers";
-import Modal from "../Common/Modal";
+import Modal from "../common/Modal";
 import DocumentForm from "./DocumentForm";
 import EditDocumentForm from "./EditDocumentForm"; // ✅ Create this component
 import toast from "react-hot-toast";

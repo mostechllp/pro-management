@@ -8,7 +8,7 @@ import {
   clearSelectedCustomer,
 } from '../../store/slices/customerSlice';
 import { openModal, closeModal } from '../../store/slices/uiSlice';
-import Modal from '../Common/Modal';
+import Modal from '../common/Modal';
 import CustomerForm from './CustomerForm';
 import DeleteConfirmationModal from '../common/DeleteModal'; 
 import toast from 'react-hot-toast';
