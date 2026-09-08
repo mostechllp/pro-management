@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './store/store';
@@ -21,7 +21,6 @@ function App() {
   return (
      <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <Router>
           <div className="min-h-screen bg-gray-50">
             <Toaster position="top-right" />
             <Routes>
@@ -43,7 +42,6 @@ function App() {
               </Route>
             </Routes>
           </div>
-        </Router>
       </PersistGate>
     </Provider>
   );
