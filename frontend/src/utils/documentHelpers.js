@@ -18,81 +18,28 @@ export const viewDocumentInNewTab = (docId) => {
   }
 };
 
-export const viewDoc = async (docId, fileName = 'document') => {
+import apiClient from "../services/apiClient";
+
+// View in a new tab
+export const viewDoc = async (docId) => {
+  // Open synchronously inside the click so popup blockers allow it
+  const tab = window.open("", "_blank");
   try {
-    const token = localStorage.getItem('token');
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    const url = `${apiUrl}/documents/${docId}/download`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to download document');
-    }
-    
-    // Handle redirect response from backend
-    if (response.redirected) {
-      // Open the redirected URL in a new tab for download
-      window.open(response.url, '_blank');
-      return;
-    }
-    
-    // If backend returns the file directly (proxy approach)
-    const blob = await response.blob();
-    
-    // Determine file extension from content-type
-    const contentType = response.headers.get('content-type') || '';
-    let extension = 'pdf';
-    if (contentType.includes('image/jpeg')) extension = 'jpg';
-    else if (contentType.includes('image/png')) extension = 'png';
-    else if (contentType.includes('application/pdf')) extension = 'pdf';
-    
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = `${fileName || 'document'}.${extension}`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    const { data } = await apiClient.get(`/documents/${docId}/view`);
+    if (tab) tab.location.href = data.url;
+    else window.location.href = data.url; // popup blocked fallback
   } catch (error) {
-    console.error('Download error:', error);
+    tab?.close();
     throw error;
   }
 };
 
-// Helper function to download document
+// Download (ImageKit's ?ik-attachment=true forces a download with the real filename)
 export const downloadDocument = async (docId) => {
-  try {
-    const token = localStorage.getItem('token');
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    const url = `${apiUrl}/documents/${docId}/view`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to download document');
-    }
-    
-    const blob = await response.blob();
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = `document-${docId}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(downloadUrl);
-  } catch (error) {
-    console.error('Download error:', error);
-    throw error;
-  }
+  const { data } = await apiClient.get(`/documents/${docId}/download`);
+  const a = document.createElement("a");
+  a.href = data.url;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 };

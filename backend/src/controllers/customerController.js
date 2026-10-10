@@ -1,6 +1,23 @@
 const Customer = require('../models/Customer');
 const Document = require('../models/Document');
 
+// Helper: migrate old `state` field to `emirates` and clean up
+const normalizeAddress = (body) => {
+  if (body.address && typeof body.address === 'object') {
+    // Backward compat: old clients sending `state` → move to `emirates`
+    if (body.address.state && !body.address.emirates) {
+      body.address.emirates = body.address.state;
+    }
+    delete body.address.state;
+
+    // Default country to UAE if blank
+    if (!body.address.country) {
+      body.address.country = 'United Arab Emirates';
+    }
+  }
+  return body;
+};
+
 // @desc    Get all customers
 // @route   GET /api/customers
 // @access  Private
@@ -80,7 +97,9 @@ exports.getCustomer = async (req, res) => {
 // @access  Private
 exports.createCustomer = async (req, res) => {
   try {
+    req.body = normalizeAddress(req.body);
     req.body.createdBy = req.user.id;
+
     const customer = await Customer.create(req.body);
 
     res.status(201).json({
@@ -108,6 +127,8 @@ exports.updateCustomer = async (req, res) => {
         message: 'Customer not found'
       });
     }
+
+    req.body = normalizeAddress(req.body);
 
     customer = await Customer.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

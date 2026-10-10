@@ -63,10 +63,10 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
-      {/* Form Container */}
-      <div className="w-full max-w-md px-4 sm:px-6 py-8 sm:py-12">
-        <div className="w-full">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-white">
+      {/* Left Side - Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12 order-2 lg:order-1">
+        <div className="w-full max-w-md">
           {/* Header */}
           <div className="mb-6 sm:mb-8">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Welcome to PRO Management</h2>
@@ -166,6 +166,15 @@ const Login = () => {
             </button>
           </form>
         </div>
+      </div>
+
+      {/* Right Side - Image (Desktop Only) */}
+      <div className="hidden lg:block lg:w-1/2 order-1 lg:order-2">
+        <img
+          src={loginImage}
+          alt="Login illustration"
+          className="w-full h-screen "
+        />
       </div>
 
       {/* Forgot Password Modal */}

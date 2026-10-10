@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import apiClient from '../../services/apiClient';
 import toast from 'react-hot-toast';
-import { FiX } from 'react-icons/fi';
+import SearchableSelect from '../common/SearchableSelect';
+import { EMIRATES, COUNTRIES, DEFAULT_COUNTRY } from '../../constants/locations';
 
 const inputClass =
   'w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors';
@@ -17,8 +18,8 @@ const CustomerForm = ({ customer, onClose, onSuccess }) => {
     address: {
       street: customer?.address?.street || '',
       city: customer?.address?.city || '',
-      state: customer?.address?.state || '',
-      country: customer?.address?.country || '',
+      emirates: customer?.address?.emirates || customer?.address?.state || '',
+      country: customer?.address?.country || DEFAULT_COUNTRY,
       zipCode: customer?.address?.zipCode || '',
     },
     status: customer?.status || 'Active',
@@ -54,7 +55,9 @@ const CustomerForm = ({ customer, onClose, onSuccess }) => {
 
       await apiClient[method](url, formData);
 
-      toast.success(customer ? 'Customer updated successfully' : 'Customer created successfully');
+      toast.success(
+        customer ? 'Customer updated successfully' : 'Customer created successfully'
+      );
       onSuccess();
     } catch (error) {
       console.error('Error saving customer:', error);
@@ -87,25 +90,23 @@ const CustomerForm = ({ customer, onClose, onSuccess }) => {
           </div>
 
           <div>
-            <label className={labelClass}>Company *</label>
+            <label className={labelClass}>Company</label>
             <input
               type="text"
               name="company"
               value={formData.company}
               onChange={handleChange}
-              required
               className={inputClass}
             />
           </div>
 
           <div>
-            <label className={labelClass}>Contact Number *</label>
+            <label className={labelClass}>Contact Number</label>
             <input
               type="text"
               name="contact"
               value={formData.contact}
               onChange={handleChange}
-              required
               className={inputClass}
             />
           </div>
@@ -145,26 +146,26 @@ const CustomerForm = ({ customer, onClose, onSuccess }) => {
                 className={inputClass}
               />
             </div>
-            <div>
-              <label className={labelClass}>State</label>
-              <input
-                type="text"
-                name="address.state"
-                value={formData.address.state}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Country</label>
-              <input
-                type="text"
-                name="address.country"
-                value={formData.address.country}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
+
+            <SearchableSelect
+              label="Emirates"
+              name="address.emirates"
+              value={formData.address.emirates}
+              onChange={handleChange}
+              options={EMIRATES}
+              placeholder="Select Emirates"
+              searchPlaceholder="Search emirates..."
+            />
+
+            <SearchableSelect
+              label="Country"
+              name="address.country"
+              value={formData.address.country}
+              onChange={handleChange}
+              options={COUNTRIES}
+              placeholder="Select Country"
+              searchPlaceholder="Search country..."
+            />
           </div>
         </div>
 

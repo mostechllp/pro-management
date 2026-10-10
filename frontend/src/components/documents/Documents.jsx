@@ -160,14 +160,13 @@ const Documents = () => {
     setEditingDocument(null);
   };
 
-  const handleViewDocument = async (docId, fileName) => {
-    try {
-      await viewDoc(docId, fileName);
-      toast.success(`Downloading ${fileName || "document"}...`);
-    } catch (error) {
-      toast.error("Failed to download document");
-    }
-  };
+  const handleViewDocument = async (docId) => {
+  try {
+    await viewDoc(docId);
+  } catch (error) {
+    toast.error("Failed to open document");
+  }
+};
 
   const handleDownloadDocument = async (docId, fileName) => {
     try {

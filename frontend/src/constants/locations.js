@@ -1,0 +1,42 @@
+export const EMIRATES = [
+  'Abu Dhabi',
+  'Ajman',
+  'Dubai',
+  'Fujairah',
+  'Ras Al Khaimah',
+  'Sharjah',
+  'Umm Al Quwain',
+];
+
+export const COUNTRIES = [
+  'United Arab Emirates',
+  'Saudi Arabia',
+  'Qatar',
+  'Oman',
+  'Kuwait',
+  'Bahrain',
+  'Jordan',
+  'Lebanon',
+  'Egypt',
+  'United States',
+  'United Kingdom',
+  'Canada',
+  'Australia',
+  'India',
+  'Pakistan',
+  'Bangladesh',
+  'Philippines',
+  'China',
+  'Japan',
+  'Germany',
+  'France',
+  'Italy',
+  'Spain',
+  'Netherlands',
+  'Singapore',
+  'Malaysia',
+  'South Africa',
+  'Other',
+];
+
+export const DEFAULT_COUNTRY = 'United Arab Emirates';

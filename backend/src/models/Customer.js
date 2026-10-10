@@ -8,25 +8,26 @@ const customerSchema = new mongoose.Schema({
   },
   company: {
     type: String,
-    required: [true, 'Please add a company name'],
-    trim: true
+    trim: true,
+    default: ''
   },
   contact: {
     type: String,
-    required: [true, 'Please add a contact number'],
-    trim: true
+    trim: true,
+    default: ''
   },
   email: {
     type: String,
     trim: true,
-    lowercase: true
+    lowercase: true,
+    default: ''
   },
   address: {
-    street: String,
-    city: String,
-    state: String,
-    country: String,
-    zipCode: String
+    street: { type: String, default: '' },
+    city: { type: String, default: '' },
+    emirates: { type: String, default: '' },
+    country: { type: String, default: 'United Arab Emirates' },
+    zipCode: { type: String, default: '' }
   },
   status: {
     type: String,
@@ -42,7 +43,10 @@ const customerSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  notes: String,
+  notes: {
+    type: String,
+    default: ''
+  },
   createdAt: {
     type: Date,
     default: Date.now

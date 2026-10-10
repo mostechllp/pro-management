@@ -3,12 +3,24 @@ const mongoose = require('mongoose');
 const documentSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Please add a document name'],
-    trim: true
+    trim: true,
+    default: '' // Optional — will be filled from `type` if missing
   },
   type: {
     type: String,
-    enum: ['Trade License', 'Emirates ID', 'Passport', 'Visa', 'Labour Card', 'VAT Certificate', 'Other'],
+    enum: [
+      'Trade License',
+      'Emirates ID',
+      'Passport',
+      'Visa',
+      'Labour Card',
+      'VAT Certificate',
+      'Establishment Card',
+      'MOA',
+      'Power of Attorney',
+      'Insurance',
+      'Other',
+    ],
     required: true
   },
   customer: {
@@ -20,6 +32,9 @@ const documentSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  fileId: {
+    type: String // needed for ImageKit deletion
+  },
   fileName: String,
   fileType: String,
   fileSize: Number,
@@ -29,12 +44,12 @@ const documentSchema = new mongoose.Schema({
   },
   expiryDate: {
     type: Date,
-    required: [true, 'Please add an expiry date']
+    default: null // ✅ Now optional
   },
   status: {
     type: String,
-    enum: ['Valid', 'Expiring Soon', 'Expired', 'Critical'],
-    default: 'Valid'
+    enum: ['Valid', 'Expiring Soon', 'Expired', 'Critical', 'No Expiry'],
+    default: 'No Expiry'
   },
   reminderSent: {
     type: Boolean,
@@ -57,13 +72,26 @@ const documentSchema = new mongoose.Schema({
   }
 });
 
-// Update timestamps on save
-documentSchema.pre('save', function(next) {
+// Update timestamps + status on save
+documentSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
-  // Update status based on expiry date
+
+  // If name missing, fall back to type
+  if (!this.name && this.type) {
+    this.name = this.type;
+  }
+
+  // Recalculate status only if there's an expiry date
+  if (!this.expiryDate) {
+    this.status = 'No Expiry';
+    return next();
+  }
+
   const now = new Date();
-  const daysUntilExpiry = Math.ceil((this.expiryDate - now) / (1000 * 60 * 60 * 24));
-  
+  const daysUntilExpiry = Math.ceil(
+    (this.expiryDate - now) / (1000 * 60 * 60 * 24)
+  );
+
   if (this.expiryDate < now) {
     this.status = 'Expired';
   } else if (daysUntilExpiry <= 7) {
@@ -73,6 +101,7 @@ documentSchema.pre('save', function(next) {
   } else {
     this.status = 'Valid';
   }
+
   next();
 });
 

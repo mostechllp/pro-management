@@ -1,6 +1,6 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import apiClient from '../../services/apiClient';
-import { showNotification } from './uiSlice';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import apiClient from "../../services/apiClient";
+import { showNotification } from "./uiSlice";
 
 const initialState = {
   documents: [],
@@ -17,111 +17,183 @@ const initialState = {
 
 // Get all documents
 export const getDocuments = createAsyncThunk(
-  'documents/getAll',
-  async ({ customer = '', status = '', search = '', page = 1, limit = 10 } = {}, { rejectWithValue, dispatch }) => {
+  "documents/getAll",
+  async (
+    { customer = "", status = "", search = "", page = 1, limit = 10 } = {},
+    { rejectWithValue, dispatch },
+  ) => {
     try {
-      const response = await apiClient.get('/documents', {
+      const response = await apiClient.get("/documents", {
         params: { customer, status, search, page, limit },
       });
       return response.data;
     } catch (error) {
       dispatch(
         showNotification({
-          message: error.response?.data?.message || 'Failed to fetch documents',
-          type: 'error',
-        })
+          message: error.response?.data?.message || "Failed to fetch documents",
+          type: "error",
+        }),
       );
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch documents');
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch documents",
+      );
     }
-  }
+  },
 );
 
 // Upload document
 export const uploadDocument = createAsyncThunk(
-  'documents/upload',
+  "documents/upload",
   async (formData, { rejectWithValue, dispatch }) => {
     try {
       // apiClient will automatically add the token via interceptor
-      const response = await apiClient.post('/documents', formData, {
+      const response = await apiClient.post("/documents", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
-      
+
       dispatch(
         showNotification({
-          message: 'Document uploaded successfully!',
-          type: 'success',
-        })
+          message: "Document uploaded successfully!",
+          type: "success",
+        }),
       );
       return response.data.data;
     } catch (error) {
-      console.error('Upload error:', error);
-      
+      console.error("Upload error:", error);
+
       if (error.response?.status === 401) {
         dispatch(
           showNotification({
-            message: 'Authentication failed. Please login again.',
-            type: 'error',
-          })
+            message: "Authentication failed. Please login again.",
+            type: "error",
+          }),
         );
-        localStorage.removeItem('token');
-        window.location.href = '/login';
+        localStorage.removeItem("token");
+        window.location.href = "/login";
       } else {
         dispatch(
           showNotification({
-            message: error.response?.data?.message || 'Failed to upload document',
-            type: 'error',
-          })
+            message:
+              error.response?.data?.message || "Failed to upload document",
+            type: "error",
+          }),
         );
       }
-      return rejectWithValue(error.response?.data?.message || 'Failed to upload document');
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to upload document",
+      );
     }
-  }
+  },
+);
+
+// ✅ NEW: Bulk upload documents
+export const uploadDocumentsBulk = createAsyncThunk(
+  "documents/uploadBulk",
+  async (formData, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await apiClient.post("/documents/bulk", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      const summary = response.data?.summary || {};
+      const { uploaded = 0, failed = 0 } = summary;
+
+      if (failed > 0) {
+        dispatch(
+          showNotification({
+            message: `Uploaded ${uploaded}, failed ${failed}.`,
+            type: uploaded > 0 ? "warning" : "error",
+          }),
+        );
+      } else {
+        dispatch(
+          showNotification({
+            message: `${uploaded} document${uploaded > 1 ? "s" : ""} uploaded successfully!`,
+            type: "success",
+          }),
+        );
+      }
+
+      return response.data; // { success, data, failed, summary }
+    } catch (error) {
+      console.error("Bulk upload error:", error);
+
+      if (error.response?.status === 401) {
+        dispatch(
+          showNotification({
+            message: "Authentication failed. Please login again.",
+            type: "error",
+          }),
+        );
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+      } else {
+        dispatch(
+          showNotification({
+            message:
+              error.response?.data?.message ||
+              "Failed to bulk upload documents",
+            type: "error",
+          }),
+        );
+      }
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to bulk upload documents",
+      );
+    }
+  },
 );
 
 // Update document
 export const updateDocument = createAsyncThunk(
-  'documents/update',
+  "documents/update",
   async ({ id, data }, { rejectWithValue, dispatch }) => {
     try {
       const response = await apiClient.put(`/documents/${id}`, data);
       dispatch(
         showNotification({
-          message: 'Document updated successfully!',
-          type: 'success',
-        })
+          message: "Document updated successfully!",
+          type: "success",
+        }),
       );
       return response.data.data;
     } catch (error) {
-      console.error('Error updating document:', error);
-      return rejectWithValue(error.response?.data?.message || 'Failed to update document');
+      console.error("Error updating document:", error);
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to update document",
+      );
     }
-  }
+  },
 );
 
 // Delete document
 export const deleteDocument = createAsyncThunk(
-  'documents/delete',
+  "documents/delete",
   async (id, { rejectWithValue, dispatch }) => {
     try {
       await apiClient.delete(`/documents/${id}`);
       dispatch(
         showNotification({
-          message: 'Document deleted successfully!',
-          type: 'success',
-        })
+          message: "Document deleted successfully!",
+          type: "success",
+        }),
       );
       return id;
     } catch (error) {
-      console.error('Error deleting document:', error);
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete document');
+      console.error("Error deleting document:", error);
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to delete document",
+      );
     }
-  }
+  },
 );
 
 const documentSlice = createSlice({
-  name: 'documents',
+  name: "documents",
   initialState,
   reducers: {
     clearSelectedDocument: (state) => {
@@ -142,7 +214,12 @@ const documentSlice = createSlice({
       .addCase(getDocuments.fulfilled, (state, action) => {
         state.loading = false;
         state.documents = action.payload.data || [];
-        state.pagination = action.payload.pagination || { page: 1, limit: 10, total: 0, pages: 0 };
+        state.pagination = action.payload.pagination || {
+          page: 1,
+          limit: 10,
+          total: 0,
+          pages: 0,
+        };
         state.error = null;
       })
       .addCase(getDocuments.rejected, (state, action) => {
@@ -165,16 +242,38 @@ const documentSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      // ✅ Bulk upload
+      .addCase(uploadDocumentsBulk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(uploadDocumentsBulk.fulfilled, (state, action) => {
+        state.loading = false;
+        const uploaded = action.payload?.data || [];
+        if (uploaded.length > 0) {
+          // Bulk uploads are added at the top, preserving order
+          state.documents.unshift(...uploaded);
+        }
+        state.error = null;
+      })
+      .addCase(uploadDocumentsBulk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
       // Update document
       .addCase(updateDocument.fulfilled, (state, action) => {
-        const index = state.documents.findIndex(d => d._id === action.payload._id);
+        const index = state.documents.findIndex(
+          (d) => d._id === action.payload._id,
+        );
         if (index !== -1) {
           state.documents[index] = action.payload;
         }
       })
       // Delete document
       .addCase(deleteDocument.fulfilled, (state, action) => {
-        state.documents = state.documents.filter(d => d._id !== action.payload);
+        state.documents = state.documents.filter(
+          (d) => d._id !== action.payload,
+        );
       });
   },
 });
