@@ -12,6 +12,7 @@ import {
   setJobs,
   upsertJob,
   removeJob,
+  clearAllJobs,          // ✅ NEW — needed for hard reset
 } from '../store/slices/uploadQueueSlice';
 
 let running = false;
@@ -21,22 +22,40 @@ let abortRequested = false;
  * Public: init the manager once on app boot.
  *  - Loads jobs from IndexedDB into Redux
  *  - Auto-resumes pending uploads
- *  - Marks any 'uploading' jobs (interrupted by a refresh) as 'pending'
+ *  - Marks any 'uploading' jobs (interrupted by refresh/crash) as
+ *    'pending' if their draft still exists, otherwise 'failed'
  */
 export async function initUploadManager(store) {
   const jobs = await getAllJobs();
 
-  // Any job stuck in 'uploading' when we boot = was interrupted by refresh/crash
-  const cleaned = jobs.map((j) =>
-    j.status === 'uploading' ? { ...j, status: 'pending' } : j
+  const cleaned = await Promise.all(
+    jobs.map(async (j) => {
+      if (j.status !== 'uploading') return j;
+
+      // Was interrupted mid-upload. Check if draft still exists.
+      let draftExists = false;
+      try {
+        const d = await getDraft(j.draftId);
+        draftExists = !!d;
+      } catch (_) {
+        // ignore — treat as missing
+      }
+
+      if (!draftExists) {
+        return {
+          ...j,
+          status: 'failed',
+          error: 'Draft file missing — please re-add this document.',
+          updatedAt: Date.now(),
+        };
+      }
+      return { ...j, status: 'pending', updatedAt: Date.now() };
+    })
   );
 
-  // Persist the cleanup
   await Promise.all(cleaned.map((j) => saveJob(j)));
-
   store.dispatch(setJobs(cleaned));
 
-  // Resume anything still pending
   if (cleaned.some((j) => j.status === 'pending')) {
     runQueue(store);
   }
@@ -50,7 +69,21 @@ export async function initUploadManager(store) {
  * @param {Array<{ draftId, customerId, name, type, entryDate, expiryDate, fileMeta }>} items
  */
 export async function enqueueUploads(store, items) {
-  const jobs = items.map((it) => ({
+  // ✅ Guard: skip any drafts already pending/uploading
+  const existingJobDraftIds = new Set(
+    store
+      .getState()
+      .uploadQueue.jobs.filter(
+        (j) => j.status === 'pending' || j.status === 'uploading'
+      )
+      .map((j) => j.draftId)
+  );
+
+  const fresh = items.filter((it) => !existingJobDraftIds.has(it.draftId));
+  if (fresh.length === 0) return;
+
+  // ✅ Build real job objects (previously missing)
+  const jobs = fresh.map((it) => ({
     jobId: `job_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
     draftId: it.draftId,
     customerId: it.customerId,
@@ -68,7 +101,6 @@ export async function enqueueUploads(store, items) {
   await Promise.all(jobs.map((j) => saveJob(j)));
   jobs.forEach((j) => store.dispatch(upsertJob(j)));
 
-  // Kick off the loop (no-op if already running)
   runQueue(store);
 }
 
@@ -78,10 +110,107 @@ export async function enqueueUploads(store, items) {
 export async function retryJob(store, jobId) {
   const job = await getJob(jobId);
   if (!job) return;
-  const next = { ...job, status: 'pending', error: null, updatedAt: Date.now() };
+
+  // Before retrying, verify the draft still exists; otherwise fail fast.
+  let draftExists = false;
+  try {
+    const d = await getDraft(job.draftId);
+    draftExists = !!d;
+  } catch (_) {}
+
+  if (!draftExists) {
+    const failedJob = {
+      ...job,
+      status: 'failed',
+      error: 'Draft file missing — please re-add this document.',
+      updatedAt: Date.now(),
+    };
+    await saveJob(failedJob);
+    store.dispatch(upsertJob(failedJob));
+    return;
+  }
+
+  const next = {
+    ...job,
+    status: 'pending',
+    error: null,
+    updatedAt: Date.now(),
+  };
   await saveJob(next);
   store.dispatch(upsertJob(next));
   runQueue(store);
+}
+
+/**
+ * ✅ Delete a single job (any status).
+ * Also cleans up its leftover draft from IndexedDB (if any).
+ */
+export async function deleteJobAndDraft(store, jobId) {
+  const job = await getJob(jobId);
+  if (!job) {
+    store.dispatch(removeJob(jobId));
+    return;
+  }
+
+  if (job.draftId) {
+    try {
+      const draft = await getDraft(job.draftId);
+      if (draft) await deleteDraft(job.draftId);
+    } catch (err) {
+      console.warn('Failed to delete draft for job', jobId, err);
+    }
+  }
+
+  await deleteJob(jobId);
+  store.dispatch(removeJob(jobId));
+}
+
+/**
+ * ✅ Clear all FAILED jobs (and their leftover drafts).
+ * Leaves pending/uploading/done jobs alone.
+ */
+export async function clearFailedJobs(store) {
+  const state = store.getState();
+  const failed = state.uploadQueue.jobs.filter((j) => j.status === 'failed');
+
+  await Promise.all(
+    failed.map(async (j) => {
+      if (j.draftId) {
+        try {
+          const draft = await getDraft(j.draftId);
+          if (draft) await deleteDraft(j.draftId);
+        } catch (err) {
+          console.warn('Failed to delete draft for job', j.jobId, err);
+        }
+      }
+      await deleteJob(j.jobId);
+    })
+  );
+
+  failed.forEach((j) => store.dispatch(removeJob(j.jobId)));
+}
+
+/**
+ * ✅ Hard reset: clear ALL jobs regardless of status + their drafts.
+ */
+export async function clearAllJobsAndDrafts(store) {
+  const jobs = await getAllJobs();
+
+  await Promise.all(
+    jobs.map(async (j) => {
+      if (j.draftId) {
+        try {
+          const draft = await getDraft(j.draftId);
+          if (draft) await deleteDraft(j.draftId);
+        } catch (err) {
+          console.warn('Failed to delete draft for job', j.jobId, err);
+        }
+      }
+      await deleteJob(j.jobId);
+    })
+  );
+
+  store.dispatch(clearAllJobs());
 }
 
 export function abortQueue() {
@@ -155,10 +284,15 @@ async function processOne(store, jobId) {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
 
-    // Success → delete draft + delete job (or mark done briefly)
+    // Success → delete draft + mark job done
     await deleteDraft(draft.id);
 
-    const doneJob = { ...uploadingJob, status: 'done', error: null, updatedAt: Date.now() };
+    const doneJob = {
+      ...uploadingJob,
+      status: 'done',
+      error: null,
+      updatedAt: Date.now(),
+    };
     await saveJob(doneJob);
     store.dispatch(upsertJob(doneJob));
 
@@ -172,9 +306,7 @@ async function processOne(store, jobId) {
       ...uploadingJob,
       status: 'failed',
       error:
-        err?.response?.data?.message ||
-        err?.message ||
-        'Upload failed',
+        err?.response?.data?.message || err?.message || 'Upload failed',
       updatedAt: Date.now(),
     };
     await saveJob(failedJob);

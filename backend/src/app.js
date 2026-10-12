@@ -27,15 +27,25 @@ connectDB();
 
 const app = express();
 
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5174')
+  .split(',')
+  .map(origin => origin.trim().replace(/\/+$/, ''));
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
+
 // Security middleware
 app.use(helmet());
 app.use(mongoSanitize());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 10 * 60 * 1000,
+  max: 100
 });
+
 app.use('/api', limiter);
 
 // Body parser middleware
