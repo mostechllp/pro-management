@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import { getCustomers } from '../../store/slices/customerSlice';
 import {
   addDocumentType,
@@ -10,14 +10,13 @@ import {
   FiCheckCircle,
   FiPlus,
   FiTrash2,
-  FiCalendar,
   FiEye,
   FiRefreshCw,
   FiAlertCircle,
 } from 'react-icons/fi';
 import SearchableSelect from '../common/SearchableSelect';
-import apiClient from '../../services/apiClient';
 import { useDocumentDrafts } from '../../hooks/useDocumentDrafts';
+import { enqueueUploads } from '../../services/uploadManager';
 import toast from 'react-hot-toast';
 
 const inputClass =
@@ -26,20 +25,18 @@ const labelClass = 'block text-sm font-medium text-slate-700 mb-1.5';
 
 const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
   const dispatch = useDispatch();
+  const store = useStore();               // ✅ access the redux store directly
   const [selectedCustomerId, setSelectedCustomerId] = useState(customerId || '');
   const [globalError, setGlobalError] = useState('');
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState({ done: 0, total: 0 });
+  const [submitting, setSubmitting] = useState(false);
 
   const { customers } = useSelector((s) => s.customers);
-  const { token } = useSelector((s) => s.auth);
   const { types: documentTypeObjs } = useSelector((s) => s.documentTypes);
   const documentTypes = useMemo(
     () => documentTypeObjs.map((t) => t.name),
     [documentTypeObjs]
   );
 
-  // ✅ IndexedDB-backed drafts — survives modal close, tab close, refresh
   const {
     drafts,
     loading: draftsLoading,
@@ -48,8 +45,6 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
     removeDraft,
     clearAll,
   } = useDocumentDrafts(selectedCustomerId);
-
-  const fileInputRefs = useRef({});
 
   useEffect(() => {
     if (!documentTypeObjs.length) dispatch(getDocumentTypes());
@@ -63,20 +58,14 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
     if (customerId) setSelectedCustomerId(customerId);
   }, [customerId]);
 
-  // ---------- Add new type ----------
   const handleAddDocumentType = async (newType) => {
     try {
       await dispatch(addDocumentType(newType)).unwrap();
     } catch (_) {}
   };
 
-  // ---------- Row helpers ----------
-  const updateDraftField = (id, patch) => updateDraft(id, patch);
-
-  // ✅ Pick a file → immediately persist to IndexedDB
   const handleFilePick = async (file) => {
     if (!file) return;
-
     const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
     if (!allowed.includes(file.type)) {
       toast.error('Please upload a PDF, JPG, JPEG, or PNG file');
@@ -86,11 +75,9 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
       toast.error('File size must be less than 5MB');
       return;
     }
-
     try {
       await addDraft({ file });
-    } catch (err) {
-      console.error(err);
+    } catch {
       toast.error('Failed to save draft');
     }
   };
@@ -109,33 +96,31 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
     await updateDraft(draftId, { file });
   };
 
-  const handleNameChange = (id, value) => updateDraftField(id, { name: value });
+  const handleNameChange = (id, value) => updateDraft(id, { name: value });
 
   const handleTypeChange = (id, e) => {
     const newType = e.target.value;
     const current = drafts.find((d) => d.id === id);
-    updateDraftField(id, {
+    updateDraft(id, {
       type: newType,
-      // auto-fill name only if user hasn't typed a custom one
       name: current?.name?.trim() ? current.name : newType,
     });
   };
 
   const handleDateChange = (id, field, value) =>
-    updateDraftField(id, { [field]: value });
+    updateDraft(id, { [field]: value });
 
   const toggleDates = (id, show) => {
-    if (show) updateDraftField(id, { showDates: true });
-    else updateDraftField(id, { entryDate: '', expiryDate: '', showDates: false });
+    if (show) updateDraft(id, { showDates: true });
+    else updateDraft(id, { entryDate: '', expiryDate: '', showDates: false });
   };
 
-  // ---------- Preview ----------
   const handlePreview = (draft) => {
     const url = draft.previewUrl || URL.createObjectURL(draft.file);
     window.open(url, '_blank');
   };
 
-  // ---------- Submit: ONE file per request, sequential ----------
+  // ✅ Just enqueue and close — background worker takes over
   const handleSubmit = async (e) => {
     e.preventDefault();
     setGlobalError('');
@@ -149,63 +134,41 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
       return;
     }
     for (let i = 0; i < drafts.length; i++) {
-      const d = drafts[i];
-      if (!d.type) {
+      if (!drafts[i].type) {
         setGlobalError(`Document #${i + 1}: Please select a document type`);
         return;
       }
     }
 
-    const authToken = token || localStorage.getItem('token');
-    if (!authToken) {
-      setGlobalError('You are not authenticated. Please login again.');
-      return;
-    }
-
-    setUploading(true);
-    setUploadProgress({ done: 0, total: drafts.length });
-
-    const failed = [];
-
-    for (let i = 0; i < drafts.length; i++) {
-      const d = drafts[i];
-      try {
-        const fd = new FormData();
-        fd.append('file', d.file, d.file.name);
-        fd.append('type', d.type);
-        fd.append('name', d.name?.trim() || '');
-        fd.append('customerId', selectedCustomerId);
-        if (d.entryDate) fd.append('entryDate', d.entryDate);
-        if (d.expiryDate) fd.append('expiryDate', d.expiryDate);
-
-        // ✅ One file per request — small, fast, independently retryable
-        await apiClient.post('/documents/bulk/single', fd, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-
-        // Success → remove from drafts (IndexedDB)
-        await removeDraft(d.id);
-      } catch (err) {
-        failed.push({
+    setSubmitting(true);
+    try {
+      const items = drafts.map((d) => ({
+        draftId: d.id,
+        customerId: selectedCustomerId,
+        name: d.name || '',
+        type: d.type,
+        entryDate: d.entryDate || '',
+        expiryDate: d.expiryDate || '',
+        fileMeta: {
           name: d.file.name,
-          reason: err?.response?.data?.message || err.message || 'Upload failed',
-        });
-      } finally {
-        setUploadProgress((p) => ({ ...p, done: p.done + 1 }));
-      }
-    }
+          size: d.file.size,
+          type: d.file.type,
+        },
+      }));
 
-    setUploading(false);
+      await enqueueUploads(store, items);
 
-    if (failed.length === 0) {
-      toast.success(`${drafts.length} document(s) uploaded successfully`);
-      onSuccess();
-    } else {
-      // Drafts that failed remain in IndexedDB → user can retry just those
-      setGlobalError(
-        `${failed.length} of ${drafts.length} failed. Failed items remain in the list — retry when ready.`
+      toast.success(
+        `${items.length} document${items.length > 1 ? 's' : ''} queued for upload`,
+        
       );
-      toast.error(`${failed.length} upload(s) failed`);
+
+      onSuccess?.();
+      onClose?.();
+    } catch (err) {
+      setGlobalError(err?.message || 'Failed to queue uploads');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -249,7 +212,7 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
             )}
           </div>
 
-          {/* Draft rows */}
+          {/* Drafts */}
           <div className="space-y-3">
             {draftsLoading && drafts.length === 0 && (
               <p className="text-sm text-slate-400 text-center py-4">
@@ -299,7 +262,6 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
                         </p>
                       </div>
                     </div>
-
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
@@ -309,7 +271,6 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
                       >
                         <FiEye size={14} />
                       </button>
-                      {/* Replace */}
                       <label
                         className="p-1.5 text-amber-600 hover:bg-amber-100 rounded cursor-pointer"
                         title="Replace file"
@@ -325,22 +286,12 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
                           }}
                         />
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => removeDraft(doc.id)}
-                        className="p-1.5 text-red-600 hover:bg-red-100 rounded"
-                        title="Remove"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
                     </div>
                   </div>
 
-                  {/* Optional name */}
+                  {/* Name */}
                   <div className="mb-3">
-                    <label className={labelClass}>
-                      Document Name
-                    </label>
+                    <label className={labelClass}>Document Name</label>
                     <input
                       type="text"
                       value={doc.name}
@@ -389,8 +340,7 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
                         </button>
                       )}
                     </div>
-
-                    {hasDates ? (
+                    {hasDates && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-white rounded-lg border border-slate-100">
                         <div>
                           <label className="block text-xs font-medium text-slate-600 mb-1">
@@ -415,21 +365,17 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
                           />
                         </div>
                       </div>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Add file — supports multiple selection */}
-          <label
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-blue-600 border-2 border-dashed border-blue-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
-          >
+          <label className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-blue-600 border-2 border-dashed border-blue-200 rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer">
             <FiUploadCloud size={16} />
             Add Document(s)
             <input
-              ref={(el) => (fileInputRefs.current['__add__'] = el)}
               type="file"
               multiple
               accept=".pdf,.jpg,.jpeg,.png"
@@ -452,7 +398,7 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
             </div>
           )}
 
-          {drafts.length > 0 && !uploading && (
+          {drafts.length > 0 && (
             <button
               type="button"
               onClick={clearAll}
@@ -468,18 +414,17 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
           <button
             type="button"
             onClick={onClose}
-            disabled={uploading}
-            className="px-4 py-2.5 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+            className="px-4 py-2.5 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50"
           >
             Close
           </button>
           <button
             type="submit"
-            disabled={uploading || drafts.length === 0}
+            disabled={submitting || drafts.length === 0}
             className="px-5 py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {uploading
-              ? `Uploading ${uploadProgress.done}/${uploadProgress.total}...`
+            {submitting
+              ? 'Queuing...'
               : `Upload ${drafts.length} Document${drafts.length === 1 ? '' : 's'}`}
           </button>
         </div>

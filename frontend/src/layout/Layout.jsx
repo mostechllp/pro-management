@@ -16,6 +16,7 @@ import {
 import { logout } from '../store/slices/authSlice';
 import NotificationDropdown from '../components/common/NotificationDopdown';
 import { fetchNotifications } from '../store/slices/notificationSlice';
+import UploadProgressBadge from '../components/common/UploadProgressBadge';
 
 const Layout = () => {
   const dispatch = useDispatch();
@@ -263,6 +264,7 @@ const Layout = () => {
           <Outlet />
         </div>
       </div>
+      <UploadProgressBadge />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Provider } from 'react-redux';
+import { Provider, useStore } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './store/store';
 import { Toaster } from 'react-hot-toast';
@@ -16,8 +16,13 @@ import Documents from './components/documents/Documents';
 import Expiry from './components/expiry/Expiry';
 import Settings from './components/Settings';
 import Notifications from './components/Notifications';
+import { initUploadManager } from './services/uploadManager';
+import { useEffect } from 'react';
 
 function App() {
+  useEffect(() => {
+    initUploadManager(store);
+  }, []); 
   return (
      <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>

@@ -12,6 +12,7 @@ import expiryReducer from './slices/expirySlice';
 import settingsReducer from './slices/settingsSlice'; 
 import notificationReducer from './slices/notificationSlice';
 import uiReducer from './slices/uiSlice';
+import uploadQueueReducer from './slices/uploadQueueSlice';
 
 // Explicit browser storage adapter
 const storage = {
@@ -44,6 +45,7 @@ const rootReducer = combineReducers({
   settings: settingsReducer,
   ui: uiReducer,
   notifications: notificationReducer,
+  uploadQueue: uploadQueueReducer,
 });
 
 const persistedReducer = persistReducer(

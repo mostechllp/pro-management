@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import {
@@ -34,6 +34,7 @@ import toast from "react-hot-toast";
 import DeleteConfirmationModal from "../common/DeleteModal";
 import FormattedDate from "../common/FormattedDate";
 import { usePreferences } from "../../hooks/usePreferences";
+import { useUploadQueueWatcher } from "../../hooks/useUploadQueueWatcher";
 
 const Documents = () => {
   const dispatch = useDispatch();
@@ -60,7 +61,8 @@ const Documents = () => {
   // Get preferences for date formatting
   const preferences = usePreferences();
 
-  useEffect(() => {
+  // ✅ Stable reload function — reused by search, filter, refresh, watcher, etc.
+  const reloadDocuments = useCallback(() => {
     dispatch(
       getDocuments({
         search,
@@ -69,11 +71,20 @@ const Documents = () => {
         limit: 10,
       }),
     );
+  }, [dispatch, search, statusFilter, page]);
+
+  useEffect(() => {
+    reloadDocuments();
 
     return () => {
       dispatch(clearSelectedDocument());
     };
-  }, [dispatch, search, statusFilter, page]);
+  }, [reloadDocuments, dispatch]);
+
+  // ✅ Auto-refresh the documents list when the background upload queue goes idle
+  useUploadQueueWatcher({
+    onQueueIdle: reloadDocuments,
+  });
 
   const handleSearch = (e) => {
     setSearch(e.target.value);
@@ -86,14 +97,7 @@ const Documents = () => {
   };
 
   const handleRefresh = () => {
-    dispatch(
-      getDocuments({
-        search,
-        status: statusFilter,
-        page,
-        limit: 10,
-      }),
-    );
+    reloadDocuments();
   };
 
   // Handle delete - opens the delete modal
@@ -112,6 +116,7 @@ const Documents = () => {
       await dispatch(deleteDocument(deleteModal.id)).unwrap();
       toast.success(`"${deleteModal.name}" deleted successfully`);
       setDeleteModal({ isOpen: false, id: null, name: "" });
+      reloadDocuments();
     } catch (error) {
       toast.error("Failed to delete document");
     } finally {
@@ -135,24 +140,19 @@ const Documents = () => {
   // Handle edit document submit
   const handleEditSubmit = async (formData) => {
     try {
-      await dispatch(updateDocument({
-        id: editingDocument._id,
-        data: formData
-      })).unwrap();
-      toast.success('Document updated successfully!');
+      await dispatch(
+        updateDocument({
+          id: editingDocument._id,
+          data: formData,
+        }),
+      ).unwrap();
+      toast.success("Document updated successfully!");
       setIsEditModalOpen(false);
       setEditingDocument(null);
       // Refresh the documents list
-      dispatch(
-        getDocuments({
-          search,
-          status: statusFilter,
-          page,
-          limit: 10,
-        }),
-      );
+      reloadDocuments();
     } catch (error) {
-      toast.error('Failed to update document');
+      toast.error("Failed to update document");
     }
   };
 
@@ -189,14 +189,10 @@ const Documents = () => {
   };
 
   const handleDocumentUploadSuccess = () => {
-    dispatch(
-      getDocuments({
-        search,
-        status: statusFilter,
-        page,
-        limit: 10,
-      }),
-    );
+    // Upload form only queues jobs now; the background worker handles uploads.
+    // The queue watcher auto-refreshes when the queue goes idle.
+    // We still refresh here in case jobs completed immediately (tiny batches).
+    reloadDocuments();
     setIsModalOpen(false);
   };
 
@@ -235,7 +231,9 @@ const Documents = () => {
       <div className="p-4 sm:p-6 flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 text-sm sm:text-base">Loading documents...</p>
+          <p className="mt-4 text-gray-600 text-sm sm:text-base">
+            Loading documents...
+          </p>
         </div>
       </div>
     );
@@ -247,7 +245,9 @@ const Documents = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">Documents</h1>
-          <p className="text-sm sm:text-base text-gray-600">Manage all your documents</p>
+          <p className="text-sm sm:text-base text-gray-600">
+            Manage all your documents
+          </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto flex-wrap">
           <button
@@ -279,7 +279,10 @@ const Documents = () => {
       {/* Filters */}
       <div className="mb-4 sm:mb-6 grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
         <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+          <FiSearch
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            size={18}
+          />
           <input
             type="text"
             placeholder="Search documents..."
@@ -289,7 +292,10 @@ const Documents = () => {
           />
         </div>
         <div className="relative">
-          <FiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+          <FiFilter
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            size={18}
+          />
           <select
             value={statusFilter}
             onChange={handleStatusFilter}
@@ -349,7 +355,10 @@ const Documents = () => {
                     </td>
                     <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <FiFileText className="text-gray-400 shrink-0" size={16} />
+                        <FiFileText
+                          className="text-gray-400 shrink-0"
+                          size={16}
+                        />
                         <span className="font-medium text-sm">{doc.name}</span>
                       </div>
                     </td>
@@ -360,7 +369,10 @@ const Documents = () => {
                     </td>
                     <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <FiCalendar className="text-gray-400 shrink-0" size={14} />
+                        <FiCalendar
+                          className="text-gray-400 shrink-0"
+                          size={14}
+                        />
                         <FormattedDate
                           date={doc.expiryDate}
                           format={preferences?.dateFormat}
@@ -497,7 +509,9 @@ const Documents = () => {
                 <span
                   className={`px-2 py-0.5 inline-flex text-xs font-semibold rounded-full shrink-0 ml-2 ${getStatusColor(doc.status)}`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full mr-1 self-center ${getStatusDotColor(doc.status)}`} />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full mr-1 self-center ${getStatusDotColor(doc.status)}`}
+                  />
                   {doc.status}
                 </span>
               </div>
@@ -506,7 +520,9 @@ const Documents = () => {
               <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
                 <div>
                   <span className="text-gray-500">Type:</span>
-                  <span className="ml-1 text-gray-700 font-medium">{doc.type}</span>
+                  <span className="ml-1 text-gray-700 font-medium">
+                    {doc.type}
+                  </span>
                 </div>
                 <div>
                   <span className="text-gray-500">Expiry:</span>
