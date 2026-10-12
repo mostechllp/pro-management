@@ -12,7 +12,7 @@ import {
   FiFilter,
   FiDownload,
   FiEdit,
-  FiChevronRight,
+  FiSettings,
 } from "react-icons/fi";
 import {
   getDocuments,
@@ -29,6 +29,7 @@ import {
 import Modal from "../common/Modal";
 import DocumentForm from "./DocumentForm";
 import EditDocumentForm from "./EditDocumentForm";
+import ManageDocumentTypes from "./ManageDocumentTypes";
 import toast from "react-hot-toast";
 import DeleteConfirmationModal from "../common/DeleteModal";
 import FormattedDate from "../common/FormattedDate";
@@ -42,6 +43,7 @@ const Documents = () => {
   const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isManageTypesOpen, setIsManageTypesOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState(null);
 
   const [deleteModal, setDeleteModal] = useState({
@@ -161,12 +163,12 @@ const Documents = () => {
   };
 
   const handleViewDocument = async (docId) => {
-  try {
-    await viewDoc(docId);
-  } catch (error) {
-    toast.error("Failed to open document");
-  }
-};
+    try {
+      await viewDoc(docId);
+    } catch (error) {
+      toast.error("Failed to open document");
+    }
+  };
 
   const handleDownloadDocument = async (docId, fileName) => {
     try {
@@ -196,6 +198,14 @@ const Documents = () => {
       }),
     );
     setIsModalOpen(false);
+  };
+
+  const handleManageTypes = () => {
+    setIsManageTypesOpen(true);
+  };
+
+  const handleCloseManageTypes = () => {
+    setIsManageTypesOpen(false);
   };
 
   const getStatusColor = (status) => {
@@ -239,14 +249,22 @@ const Documents = () => {
           <h1 className="text-xl sm:text-2xl font-bold">Documents</h1>
           <p className="text-sm sm:text-base text-gray-600">Manage all your documents</p>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex gap-2 w-full sm:w-auto flex-wrap">
           <button
             onClick={handleAddDocument}
             className="flex-1 sm:flex-none bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors text-sm sm:text-base"
           >
-            <FiPlus size={18} /> 
+            <FiPlus size={18} />
             <span className="hidden xs:inline">Upload Document</span>
             <span className="xs:hidden">Upload</span>
+          </button>
+          <button
+            onClick={handleManageTypes}
+            className="px-3 sm:px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm sm:text-base"
+            title="Manage document types"
+          >
+            <FiSettings size={18} />
+            <span className="hidden sm:inline">Manage Types</span>
           </button>
           <button
             onClick={handleRefresh}
@@ -343,9 +361,9 @@ const Documents = () => {
                     <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <FiCalendar className="text-gray-400 shrink-0" size={14} />
-                        <FormattedDate 
-                          date={doc.expiryDate} 
-                          format={preferences?.dateFormat} 
+                        <FormattedDate
+                          date={doc.expiryDate}
+                          format={preferences?.dateFormat}
                         />
                       </div>
                     </td>
@@ -493,9 +511,9 @@ const Documents = () => {
                 <div>
                   <span className="text-gray-500">Expiry:</span>
                   <span className="ml-1 text-gray-700">
-                    <FormattedDate 
-                      date={doc.expiryDate} 
-                      format={preferences?.dateFormat} 
+                    <FormattedDate
+                      date={doc.expiryDate}
+                      format={preferences?.dateFormat}
                     />
                   </span>
                 </div>
@@ -598,6 +616,15 @@ const Documents = () => {
           onClose={handleCloseEditModal}
           onSuccess={handleEditSubmit}
         />
+      </Modal>
+
+      {/* Manage Document Types Modal */}
+      <Modal
+        isOpen={isManageTypesOpen}
+        onClose={handleCloseManageTypes}
+        size="md"
+      >
+        <ManageDocumentTypes />
       </Modal>
 
       {/* Delete Confirmation Modal */}

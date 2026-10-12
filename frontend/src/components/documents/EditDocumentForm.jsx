@@ -1,12 +1,29 @@
+// EditDocumentForm.jsx
 import React, { useState, useEffect } from 'react';
-import { FiX } from 'react-icons/fi';
+import SearchableSelect from '../common/SearchableSelect';
+import toast from 'react-hot-toast';
 
 const inputClass =
   'w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors';
 const labelClass = 'block text-sm font-medium text-slate-700 mb-1.5';
 
+const DEFAULT_DOCUMENT_TYPES = [
+  'Trade License',
+  'Emirates ID',
+  'Passport',
+  'Visa',
+  'Labour Card',
+  'VAT Certificate',
+  'Establishment Card',
+  'MOA',
+  'Power of Attorney',
+  'Insurance',
+  'Other',
+];
+
 const EditDocumentForm = ({ document, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
+  const [documentTypes, setDocumentTypes] = useState(DEFAULT_DOCUMENT_TYPES);
   const [formData, setFormData] = useState({
     name: '',
     type: '',
@@ -20,18 +37,42 @@ const EditDocumentForm = ({ document, onClose, onSuccess }) => {
       setFormData({
         name: document.name || '',
         type: document.type || '',
-        entryDate: document.entryDate ? new Date(document.entryDate).toISOString().split('T')[0] : '',
-        expiryDate: document.expiryDate ? new Date(document.expiryDate).toISOString().split('T')[0] : '',
+        entryDate: document.entryDate
+          ? new Date(document.entryDate).toISOString().split('T')[0]
+          : '',
+        expiryDate: document.expiryDate
+          ? new Date(document.expiryDate).toISOString().split('T')[0]
+          : '',
         notes: document.notes || '',
       });
+
+      // If the document has a custom type not in the default list, add it
+      if (document.type && !DEFAULT_DOCUMENT_TYPES.includes(document.type)) {
+        setDocumentTypes((prev) => [...prev, document.type]);
+      }
     }
   }, [document]);
+
+  const handleAddDocumentType = (newType) => {
+    if (!documentTypes.includes(newType)) {
+      setDocumentTypes((prev) => [...prev, newType]);
+      toast.success(`"${newType}" added to document types`);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  const handleTypeChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      type: e.target.value,
+      name: prev.name || e.target.value,
     }));
   };
 
@@ -88,26 +129,20 @@ const EditDocumentForm = ({ document, onClose, onSuccess }) => {
             />
           </div>
 
-          {/* Document Type */}
-          <div>
-            <label className={labelClass}>Document Type *</label>
-            <select
-              name="type"
-              value={formData.type}
-              onChange={handleChange}
-              required
-              className={inputClass}
-            >
-              <option value="">Select type</option>
-              <option value="Trade License">Trade License</option>
-              <option value="Emirates ID">Emirates ID</option>
-              <option value="Passport">Passport</option>
-              <option value="Visa">Visa</option>
-              <option value="Labour Card">Labour Card</option>
-              <option value="VAT Certificate">VAT Certificate</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
+          {/* Document Type - with Add New capability */}
+          <SearchableSelect
+            label="Document Type *"
+            name="type"
+            value={formData.type}
+            onChange={handleTypeChange}
+            options={documentTypes}
+            placeholder="Select type"
+            searchPlaceholder="Search or type to add new..."
+            allowClear
+            allowAdd={true}
+            onAddOption={handleAddDocumentType}
+            addOptionLabel="Add new type"
+          />
 
           {/* Dates */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -18,12 +18,19 @@ router.route('/')
   .get(protect, getDocuments)
   .post(protect, upload.single('file'), uploadDocument);
 
-// ✅ Bulk upload — accepts up to 10 files under the `files` field
+// Keep the legacy multi-file bulk endpoint (no count cap now)
 router.post(
   '/bulk',
   protect,
-  upload.array('files', 10),
+  upload.array('files'),   
   bulkUploadDocuments
+);
+
+router.post(
+  '/bulk/single',
+  protect,
+  upload.single('file'),
+  uploadDocument    // same controller — req.file holds exactly one file
 );
 
 // Single resource

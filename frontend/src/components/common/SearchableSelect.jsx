@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { FiChevronDown, FiSearch, FiX } from 'react-icons/fi';
+import { FiChevronDown, FiSearch, FiX, FiPlus } from 'react-icons/fi'; // ✅ NEW: FiPlus
 
 const SearchableSelect = ({
   label,
@@ -15,6 +15,10 @@ const SearchableSelect = ({
   labelClass = 'block text-sm font-medium text-slate-700 mb-1.5',
   inputClass = 'w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors',
   allowClear = true,
+  // ✅ NEW props
+  allowAdd = false,
+  onAddOption = null,
+  addOptionLabel = 'Add',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,6 +44,21 @@ const SearchableSelect = ({
       opt.label.toLowerCase().includes(term)
     );
   }, [normalizedOptions, searchTerm]);
+
+  // ✅ NEW: Check if search term exactly matches an existing option
+  const exactMatch = useMemo(() => {
+    if (!searchTerm.trim()) return true; // hide "add" when empty
+    const term = searchTerm.toLowerCase().trim();
+    return normalizedOptions.some(
+      (opt) => opt.label.toLowerCase() === term
+    );
+  }, [normalizedOptions, searchTerm]);
+
+  // ✅ NEW: Should we show the "Add new" button?
+  const canAddNew = allowAdd && searchTerm.trim() && !exactMatch;
+
+  // ✅ NEW: Total navigable items (options + add button)
+  const totalItems = filteredOptions.length + (canAddNew ? 1 : 0);
 
   // Get display label for current value
   const selectedLabel = useMemo(() => {
@@ -78,13 +97,34 @@ const SearchableSelect = ({
   }, [highlightedIndex, isOpen]);
 
   const handleSelect = (option) => {
-    // Emit a synthetic event to match handleChange expectations
     onChange({
       target: {
         name,
         value: option.value,
       },
     });
+    setIsOpen(false);
+    setSearchTerm('');
+  };
+
+  // ✅ NEW: Handle adding a new option
+  const handleAddNew = () => {
+    const newValue = searchTerm.trim();
+    if (!newValue) return;
+
+    // Notify parent so it can persist / update its own state
+    if (onAddOption) {
+      onAddOption(newValue);
+    }
+
+    // Select the newly added value
+    onChange({
+      target: {
+        name,
+        value: newValue,
+      },
+    });
+
     setIsOpen(false);
     setSearchTerm('');
   };
@@ -113,7 +153,7 @@ const SearchableSelect = ({
       case 'ArrowDown':
         e.preventDefault();
         setHighlightedIndex((prev) =>
-          prev < filteredOptions.length - 1 ? prev + 1 : prev
+          prev < totalItems - 1 ? prev + 1 : prev
         );
         break;
       case 'ArrowUp':
@@ -122,8 +162,14 @@ const SearchableSelect = ({
         break;
       case 'Enter':
         e.preventDefault();
-        if (filteredOptions[highlightedIndex]) {
+        // If the "add new" row is highlighted, add it
+        if (canAddNew && highlightedIndex === filteredOptions.length) {
+          handleAddNew();
+        } else if (filteredOptions[highlightedIndex]) {
           handleSelect(filteredOptions[highlightedIndex]);
+        } else if (canAddNew && filteredOptions.length === 0) {
+          // No options at all, but "add" is available
+          handleAddNew();
         }
         break;
       case 'Escape':
@@ -211,33 +257,57 @@ const SearchableSelect = ({
             role="listbox"
             className="max-h-56 overflow-y-auto py-1"
           >
-            {filteredOptions.length === 0 ? (
+            {filteredOptions.length === 0 && !canAddNew ? (
               <li className="px-3 py-2 text-sm text-slate-400 text-center">
                 No results found
               </li>
             ) : (
-              filteredOptions.map((option, index) => {
-                const isSelected = option.value === value;
-                const isHighlighted = index === highlightedIndex;
-                return (
+              <>
+                {filteredOptions.map((option, index) => {
+                  const isSelected = option.value === value;
+                  const isHighlighted = index === highlightedIndex;
+                  return (
+                    <li
+                      key={option.value}
+                      role="option"
+                      aria-selected={isSelected}
+                      onClick={() => handleSelect(option)}
+                      onMouseEnter={() => setHighlightedIndex(index)}
+                      className={`px-3 py-2 text-sm cursor-pointer transition-colors ${
+                        isHighlighted ? 'bg-blue-50' : ''
+                      } ${
+                        isSelected
+                          ? 'text-blue-600 font-medium'
+                          : 'text-slate-700'
+                      }`}
+                    >
+                      {option.label}
+                    </li>
+                  );
+                })}
+
+                {/* ✅ NEW: "Add new" row */}
+                {canAddNew && (
                   <li
-                    key={option.value}
                     role="option"
-                    aria-selected={isSelected}
-                    onClick={() => handleSelect(option)}
-                    onMouseEnter={() => setHighlightedIndex(index)}
-                    className={`px-3 py-2 text-sm cursor-pointer transition-colors ${
-                      isHighlighted ? 'bg-blue-50' : ''
-                    } ${
-                      isSelected
-                        ? 'text-blue-600 font-medium'
-                        : 'text-slate-700'
+                    aria-selected={false}
+                    onClick={handleAddNew}
+                    onMouseEnter={() =>
+                      setHighlightedIndex(filteredOptions.length)
+                    }
+                    className={`px-3 py-2 text-sm cursor-pointer transition-colors flex items-center gap-2 text-blue-600 font-medium border-t border-slate-100 ${
+                      highlightedIndex === filteredOptions.length
+                        ? 'bg-blue-50'
+                        : ''
                     }`}
                   >
-                    {option.label}
+                    <FiPlus size={14} />
+                    <span className="truncate">
+                      {addOptionLabel} "{searchTerm.trim()}"
+                    </span>
                   </li>
-                );
-              })
+                )}
+              </>
             )}
           </ul>
         </div>

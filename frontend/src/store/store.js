@@ -6,6 +6,7 @@ import { persistStore, persistReducer } from 'redux-persist';
 import authReducer from './slices/authSlice';
 import customerReducer from './slices/customerSlice';
 import documentReducer from './slices/documentSlice';
+import documentTypeReducer from './slices/documentTypeSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import expiryReducer from './slices/expirySlice'; 
 import settingsReducer from './slices/settingsSlice'; 
@@ -37,6 +38,7 @@ const rootReducer = combineReducers({
   auth: authReducer,
   customers: customerReducer,
   documents: documentReducer,
+  documentTypes: documentTypeReducer,
   dashboard: dashboardReducer,
   expiry: expiryReducer,
   settings: settingsReducer,

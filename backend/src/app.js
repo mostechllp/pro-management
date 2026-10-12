@@ -13,6 +13,7 @@ const cron = require('node-cron');
 const authRoutes = require('./routes/authRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const documentRoutes = require('./routes/documentRoutes');
+const documentTypeRoutes = require('./routes/documentTypeRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
@@ -46,7 +47,7 @@ app.use(compression());
 
 // CORS
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5174',
+  origin: process.env.FRONTEND_URL|| 'http://localhost:5174',
   credentials: true
 }));
 
@@ -57,6 +58,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/document-types', documentTypeRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/notifications', notificationRoutes);

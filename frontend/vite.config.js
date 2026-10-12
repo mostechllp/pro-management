@@ -7,5 +7,5 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-  // base: "/pro-management/",
+  base: "/pro-management/",
 });
