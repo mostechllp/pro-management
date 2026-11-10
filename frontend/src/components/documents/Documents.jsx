@@ -46,6 +46,7 @@ const Documents = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isManageTypesOpen, setIsManageTypesOpen] = useState(false);
   const [editingDocument, setEditingDocument] = useState(null);
+  const [pageLoading, setPageLoading] = useState(false);
 
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
@@ -80,6 +81,10 @@ const Documents = () => {
       dispatch(clearSelectedDocument());
     };
   }, [reloadDocuments, dispatch]);
+
+  useEffect(() => {
+    if (!loading) setPageLoading(false);
+  }, [loading]);
 
   // ✅ Auto-refresh the documents list when the background upload queue goes idle
   useUploadQueueWatcher({
@@ -311,7 +316,7 @@ const Documents = () => {
       </div>
 
       {/* Documents Table - Desktop */}
-      <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
+      <div className="hidden md:block relative bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
@@ -461,9 +466,12 @@ const Documents = () => {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={pagination.page === 1}
-                className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                onClick={() => {
+                  setPageLoading(true);
+                  setPage((p) => Math.max(1, p - 1));
+                }}
+                disabled={pagination.page === 1 || pageLoading}
+                className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm cursor-pointer disabled:cursor-not-allowed"
               >
                 Previous
               </button>
@@ -471,21 +479,27 @@ const Documents = () => {
                 {pagination.page} of {pagination.pages}
               </span>
               <button
-                onClick={() =>
-                  setPage((p) => Math.min(pagination.pages, p + 1))
-                }
-                disabled={pagination.page === pagination.pages}
-                className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                onClick={() => {
+                  setPageLoading(true);
+                  setPage((p) => Math.min(pagination.pages, p + 1));
+                }}
+                disabled={pagination.page === pagination.pages || pageLoading}
+                className="px-3 sm:px-4 py-1.5 sm:py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm cursor-pointer disabled:cursor-not-allowed"
               >
                 Next
               </button>
             </div>
           </div>
         )}
+        {pageLoading && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+          </div>
+        )}
       </div>
 
       {/* Documents Cards - Mobile/Tablet */}
-      <div className="md:hidden space-y-3 sm:space-y-4">
+      <div className="md:hidden relative space-y-3 sm:space-y-4">
         {documents.length > 0 ? (
           documents.map((doc) => (
             <div
@@ -583,6 +597,11 @@ const Documents = () => {
                 </button>
               )}
             </div>
+          </div>
+        )}
+        {pageLoading && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-10 rounded-lg">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
           </div>
         )}
       </div>

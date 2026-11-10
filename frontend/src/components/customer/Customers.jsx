@@ -1,22 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
-import { FiSearch, FiPlus, FiEdit, FiTrash2, FiEye, FiUsers } from 'react-icons/fi';
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Link } from "react-router-dom";
+import {
+  FiSearch,
+  FiPlus,
+  FiEdit,
+  FiTrash2,
+  FiEye,
+  FiUsers,
+} from "react-icons/fi";
 import {
   getCustomers,
   deleteCustomer,
   clearSelectedCustomer,
-} from '../../store/slices/customerSlice';
-import { openModal, closeModal } from '../../store/slices/uiSlice';
-import Modal from '../common/Modal';
-import CustomerForm from './CustomerForm';
-import DeleteConfirmationModal from '../common/DeleteModal'; 
-import toast from 'react-hot-toast';
+} from "../../store/slices/customerSlice";
+import { openModal, closeModal } from "../../store/slices/uiSlice";
+import Modal from "../common/Modal";
+import CustomerForm from "./CustomerForm";
+import DeleteConfirmationModal from "../common/DeleteModal";
+import toast from "react-hot-toast";
 
 const STATUS_STYLES = {
-  Active: { badge: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
-  Inactive: { badge: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
-  Pending: { badge: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
+  Active: { badge: "bg-green-100 text-green-700", dot: "bg-green-500" },
+  Inactive: { badge: "bg-red-100 text-red-700", dot: "bg-red-500" },
+  Pending: { badge: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
 };
 
 const StatusBadge = ({ status }) => {
@@ -26,7 +33,7 @@ const StatusBadge = ({ status }) => {
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${style.badge}`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
-      {status || 'Active'}
+      {status || "Active"}
     </span>
   );
 };
@@ -58,23 +65,30 @@ const RowActions = ({ customer, onEdit, onDelete }) => (
 );
 
 const Customers = () => {
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageLoading, setPageLoading] = useState(false);
   const dispatch = useDispatch();
 
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     id: null,
-    name: '',
+    name: "",
   });
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const { customers, loading, pagination } = useSelector((state) => state.customers);
+  const { customers, loading, pagination } = useSelector(
+    (state) => state.customers,
+  );
   const { modal } = useSelector((state) => state.ui);
 
   useEffect(() => {
     dispatch(getCustomers({ search, page, limit: 10 }));
   }, [dispatch, search, page]);
+
+  useEffect(() => {
+    if (!loading) setPageLoading(false);
+  }, [loading]);
 
   const handleSearch = (e) => {
     setSearch(e.target.value);
@@ -96,9 +110,9 @@ const Customers = () => {
     try {
       await dispatch(deleteCustomer(deleteModal.id)).unwrap();
       toast.success(`"${deleteModal.name}" deleted successfully`);
-      setDeleteModal({ isOpen: false, id: null, name: '' });
+      setDeleteModal({ isOpen: false, id: null, name: "" });
     } catch (error) {
-      toast.error('Failed to delete customer');
+      toast.error("Failed to delete customer");
     } finally {
       setIsDeleting(false);
     }
@@ -107,16 +121,16 @@ const Customers = () => {
   // Close delete modal
   const handleCloseDeleteModal = () => {
     if (!isDeleting) {
-      setDeleteModal({ isOpen: false, id: null, name: '' });
+      setDeleteModal({ isOpen: false, id: null, name: "" });
     }
   };
 
   const handleEdit = (customer) => {
-    dispatch(openModal({ type: 'editCustomer', data: customer }));
+    dispatch(openModal({ type: "editCustomer", data: customer }));
   };
 
   const handleAddCustomer = () => {
-    dispatch(openModal({ type: 'addCustomer' }));
+    dispatch(openModal({ type: "addCustomer" }));
   };
 
   const handleCloseModal = () => {
@@ -150,7 +164,10 @@ const Customers = () => {
       {/* Search Bar */}
       <div className="mb-5">
         <div className="relative max-w-md">
-          <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <FiSearch
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            size={16}
+          />
           <input
             type="text"
             placeholder="Search customers by name or company..."
@@ -162,22 +179,37 @@ const Customers = () => {
       </div>
 
       {/* Customers Table (desktop) */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="relative bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50">
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Name</th>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Company</th>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Contact</th>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Documents</th>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Company
+                </th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Contact
+                </th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Documents
+                </th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {customers.map((customer) => (
-                <tr key={customer._id} className="hover:bg-slate-50 transition-colors">
+                <tr
+                  key={customer._id}
+                  className="hover:bg-slate-50 transition-colors"
+                >
                   <td className="px-5 py-3.5 whitespace-nowrap">
                     <Link
                       to={`/customers/${customer._id}`}
@@ -186,14 +218,24 @@ const Customers = () => {
                       {customer.name}
                     </Link>
                   </td>
-                  <td className="px-5 py-3.5 whitespace-nowrap text-slate-600">{customer.company}</td>
-                  <td className="px-5 py-3.5 whitespace-nowrap text-slate-600">{customer.contact}</td>
-                  <td className="px-5 py-3.5 whitespace-nowrap text-slate-600">{customer.documents?.length || 0}</td>
+                  <td className="px-5 py-3.5 whitespace-nowrap text-slate-600">
+                    {customer.company}
+                  </td>
+                  <td className="px-5 py-3.5 whitespace-nowrap text-slate-600">
+                    {customer.contact}
+                  </td>
+                  <td className="px-5 py-3.5 whitespace-nowrap text-slate-600">
+                    {customer.documents?.length || 0}
+                  </td>
                   <td className="px-5 py-3.5 whitespace-nowrap">
                     <StatusBadge status={customer.status} />
                   </td>
                   <td className="px-5 py-3.5 whitespace-nowrap">
-                    <RowActions customer={customer} onEdit={handleEdit} onDelete={handleDeleteClick} />
+                    <RowActions
+                      customer={customer}
+                      onEdit={handleEdit}
+                      onDelete={handleDeleteClick}
+                    />
                   </td>
                 </tr>
               ))}
@@ -213,7 +255,9 @@ const Customers = () => {
                   >
                     {customer.name}
                   </Link>
-                  <p className="text-xs text-slate-500 truncate">{customer.company}</p>
+                  <p className="text-xs text-slate-500 truncate">
+                    {customer.company}
+                  </p>
                 </div>
                 <StatusBadge status={customer.status} />
               </div>
@@ -222,7 +266,11 @@ const Customers = () => {
                 <span>{customer.documents?.length || 0} docs</span>
               </div>
               <div className="mt-3 flex justify-end">
-                <RowActions customer={customer} onEdit={handleEdit} onDelete={handleDeleteClick} />
+                <RowActions
+                  customer={customer}
+                  onEdit={handleEdit}
+                  onDelete={handleDeleteClick}
+                />
               </div>
             </div>
           ))}
@@ -231,7 +279,9 @@ const Customers = () => {
         {customers.length === 0 && (
           <div className="p-10 text-center">
             <FiUsers className="mx-auto text-slate-300 mb-2" size={36} />
-            <p className="text-slate-500 text-sm">No customers found. Add your first customer!</p>
+            <p className="text-slate-500 text-sm">
+              No customers found. Add your first customer!
+            </p>
           </div>
         )}
 
@@ -239,27 +289,39 @@ const Customers = () => {
         {pagination?.total > 0 && (
           <div className="px-5 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="text-xs text-slate-500">
-              Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
-              {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
+              Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+              {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
+              of {pagination.total} results
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={pagination.page === 1}
-                className="px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={() => {
+                  setPageLoading(true);
+                  setPage((p) => Math.max(1, p - 1));
+                }}
+                disabled={pagination.page === 1 || pageLoading}
+                className="px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer disabled:cursor-not-allowed"
               >
                 Previous
               </button>
               <button
-                onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
-                disabled={pagination.page === pagination.pages}
-                className="px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                onClick={() => {
+                  setPageLoading(true);
+                  setPage((p) => Math.min(pagination.pages, p + 1));
+                }}
+                disabled={pagination.page === pagination.pages || pageLoading}
+                className="px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer disabled:cursor-not-allowed"
               >
                 Next
               </button>
             </div>
           </div>
         )}
+{pageLoading && (
+  <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-10">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+  </div>
+)}
       </div>
 
       {/* Modal */}

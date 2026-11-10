@@ -221,8 +221,8 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
             )}
 
             {drafts.map((doc, index) => {
-              const hasDates = doc.entryDate || doc.expiryDate;
-              return (
+  const hasDates = doc.showDates || !!(doc.entryDate || doc.expiryDate);
+  return (
                 <div
                   key={doc.id}
                   className="relative border border-slate-200 rounded-xl p-3.5 bg-slate-50/40"
@@ -340,8 +340,8 @@ const DocumentForm = ({ customerId, customerName, onClose, onSuccess }) => {
                         </button>
                       )}
                     </div>
-                    {hasDates && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-white rounded-lg border border-slate-100">
+                    {doc.showDates && (
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-white rounded-lg border border-slate-100">
                         <div>
                           <label className="block text-xs font-medium text-slate-600 mb-1">
                             Entry Date
