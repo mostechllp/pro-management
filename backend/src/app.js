@@ -41,13 +41,6 @@ app.use(cors({
 app.use(helmet());
 app.use(mongoSanitize());
 
-// Rate limiting
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 300,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false
-});
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -56,7 +49,6 @@ const loginLimiter = rateLimit({
   legacyHeaders: false
 });
 
-app.use('/api', apiLimiter);
 app.use('/api/auth/login', loginLimiter);
 
 app.use(express.json({ limit: '10mb' }));
