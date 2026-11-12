@@ -40,15 +40,35 @@ const buildDocPayload = ({ body, file, uploadResponse, customerId, userId }) => 
 // ============================================
 exports.getDocuments = async (req, res) => {
   try {
-    const { customer, status, page = 1, limit = 10 } = req.query;
+    const { customer, status, search, page = 1, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
 
     let query = {};
     if (customer) query.customer = customer;
 
     if (status) {
-      const statusArray = status.split(',').map((s) => s.trim());
+      const statusArray = status.split(',').map((s) => s.trim()).filter(Boolean);
       query.status = statusArray.length > 1 ? { $in: statusArray } : statusArray[0];
+    }
+
+    // ✅ Search by document name OR customer name/company
+    if (search && search.trim()) {
+      const regex = new RegExp(search.trim(), 'i');
+
+      // Find customers matching the search term first
+      const matchingCustomers = await Customer.find({
+        $or: [{ name: regex }, { company: regex }],
+      }).select('_id');
+
+      const customerIds = matchingCustomers.map((c) => c._id);
+
+      query.$or = [
+        { name: regex },
+        { type: regex },
+        { fileName: regex },
+        { notes: regex },
+        ...(customerIds.length ? [{ customer: { $in: customerIds } }] : []),
+      ];
     }
 
     const documents = await Document.find(query)

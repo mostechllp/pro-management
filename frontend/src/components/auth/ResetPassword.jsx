@@ -31,7 +31,7 @@ const ResetPassword = () => {
         { password }
       );
       toast.success('Password reset successful! Please login.');
-      navigate('/login');
+      navigate('/pro-management/login');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to reset password');
     } finally {
@@ -99,7 +99,7 @@ const ResetPassword = () => {
           </div>
 
           <div className="text-center">
-            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+            <Link to="/pro-management/login" className="font-medium text-blue-600 hover:text-blue-500">
               Back to login
             </Link>
           </div>

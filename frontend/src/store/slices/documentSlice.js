@@ -71,7 +71,7 @@ export const uploadDocument = createAsyncThunk(
           }),
         );
         localStorage.removeItem("token");
-        window.location.href = "/login";
+        window.location.href = "/pro-management/login";
       } else {
         dispatch(
           showNotification({
@@ -130,7 +130,7 @@ export const uploadDocumentsBulk = createAsyncThunk(
           }),
         );
         localStorage.removeItem("token");
-        window.location.href = "/login";
+        window.location.href = "/pro-management/login";
       } else {
         dispatch(
           showNotification({

@@ -270,19 +270,33 @@ async function processOne(store, jobId) {
   }
 
   try {
-    const fd = new FormData();
-    fd.append('file', draft.file, draft.file.name);
-    fd.append('type', job.type || draft.type);
-    fd.append('name', (job.name || draft.name || '').trim());
-    fd.append('customerId', job.customerId);
-    const entryDate = job.entryDate || draft.entryDate;
-    const expiryDate = job.expiryDate || draft.expiryDate;
-    if (entryDate) fd.append('entryDate', entryDate);
-    if (expiryDate) fd.append('expiryDate', expiryDate);
-
-    await apiClient.post('/documents/bulk/single', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+  // Force a full read of the stored blob and rebuild a clean in-memory File
+  let freshFile;
+  try {
+    const buffer = await draft.file.arrayBuffer();
+    if (job.fileMeta?.size && buffer.byteLength !== job.fileMeta.size) {
+      throw new Error('Stored file is incomplete');
+    }
+    freshFile = new File([buffer], draft.file.name, {
+      type: draft.file.type || 'application/pdf',
+      lastModified: draft.file.lastModified,
     });
+  } catch (readErr) {
+    throw new Error('Could not read the saved file. Please re-add this document.');
+  }
+
+  const fd = new FormData();
+  // append text fields first, file last
+  fd.append('type', job.type || draft.type);
+  fd.append('name', (job.name || draft.name || '').trim());
+  fd.append('customerId', job.customerId);
+  const entryDate = job.entryDate || draft.entryDate;
+  const expiryDate = job.expiryDate || draft.expiryDate;
+  if (entryDate) fd.append('entryDate', entryDate);
+  if (expiryDate) fd.append('expiryDate', expiryDate);
+  fd.append('file', freshFile, freshFile.name);
+
+  await apiClient.post('/documents/bulk/single', fd, { timeout: 120000 });
 
     // Success → delete draft + mark job done
     await deleteDraft(draft.id);

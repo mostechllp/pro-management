@@ -73,7 +73,7 @@ const Layout = () => {
 
   const handleLogout = () => {
     dispatch(logout());
-    navigate('/login');
+    navigate('/pro-management/login');
   };
 
   // Toggle sidebar
